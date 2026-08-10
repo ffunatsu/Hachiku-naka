@@ -239,7 +239,7 @@ kanaGroup := ""	; グループなし
 	SetKana( AL_り | AL_や	,"rya"	)	; りゃ
 	SetKana( AL_し | AL_や	,"sya"	)	; しゃ
 	SetKana( AL_み | AL_や	,"mya"	)	; みゃ
-	SetKana( AL_に | AL_や	,"nya"	)	; にゃ
+	; SetKana( AL_に | AL_や	,"nya"	)	; にゃ
 	SetKana( AL_ち | AL_や	,"tya"	)	; ちゃ
 	SetKana( AL_ひ | AL_や	,"hya"	)	; ひゃ
 
@@ -301,10 +301,10 @@ kanaGroup := "DA"
 	SetKana( AL_右濁 | AL_て | AL_い	,"dhi"		)	; でぃ
 
 ; ト; トゥドゥ
-kanaGroup := "HA"
-	SetKana( AL_右半 | AL_と | AL_う	,"twu"		)	; とぅ
-kanaGroup := "DA"
-	SetKana( AL_右濁 | AL_と | AL_う	,"dwu"		)	; どぅ
+; kanaGroup := "HA"
+; 	SetKana( AL_右半 | AL_と | AL_う	,"twu"		)	; とぅ
+; kanaGroup := "DA"
+; 	SetKana( AL_右濁 | AL_と | AL_う	,"dwu"		)	; どぅ
 
 ; シチ ェ; シェジェチェヂェ
 kanaGroup := "HA"
