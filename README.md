@@ -1,6 +1,6 @@
 ## Hachiku-naka 中指シフト化版薙刀式
 
-Hachiku（薙刀式実装）を[中指シフト化版 薙刀式 = 中指薙刀式](https://gist.github.com/ffunatsu/9950c881a8faf616225790aa719544f4)に対応させたものです。
+Hachiku（薙刀式実装）を中指シフト化版である[中指薙刀式](https://gist.github.com/ffunatsu/9950c881a8faf616225790aa719544f4)に対応させたものです。
 
 ---
 
