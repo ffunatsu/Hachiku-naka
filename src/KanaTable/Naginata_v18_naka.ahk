@@ -384,12 +384,21 @@ kanaGroup := "NA"
 	SetKana( AL_ひ | AL_右中		,"hi"		)		; ひ
 	SetKana( AL_を | AL_右中		,"wo"		)		; を
 	SetKana( AL_、 | AL_右中		,",{確定}"	)		; 、
+	SetKana( AL_左中  | KC_V			,",{確定}"	)		; 、
 	SetKana( AL_ぬ | AL_右中		,"nu"		)		; ぬ
 	SetKana( AL_お | AL_左中		,"o"		)		; お
 	SetKana( AL_。 | AL_左中		,".{確定}"	)		; 。
+	SetKana( AL_右中  | KC_M			,",{確定}"	)		; 、
 	SetKana( AL_む | AL_左中		,"mu"		)		; む
 	SetKana( AL_わ | AL_左中		,"wa"		)		; わ
 	SetKana( AL_れ | AL_左中		,"re"		)		; れ
+
+	SetKana( KC_R  | KC_F			,"/"	)
+	SetKana( KC_R  | KC_G			,"/"	)
+	SetKana( KC_F  | KC_B			,"[]{確定}{←}"	)
+	SetKana( KC_I  | KC_J			,"(){確定}{←}"	)
+	SetKana( KC_F  | KC_V			,"{!}{確定}"	)
+	SetKana( KC_N  | KC_J			,"?{確定}"	)
 
 
 ;****************************
