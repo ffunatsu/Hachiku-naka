@@ -388,7 +388,7 @@ kanaGroup := "NA"
 	SetKana( AL_ぬ | AL_右中		,"nu"		)		; ぬ
 	SetKana( AL_お | AL_左中		,"o"		)		; お
 	SetKana( AL_。 | AL_左中		,".{確定}"	)		; 。
-	SetKana( AL_右中  | KC_M			,".{確定}"	)		; 。
+	SetKana( KC_L  | KC_M			,".{確定}"	)		; 。
 	SetKana( AL_む | AL_左中		,"mu"		)		; む
 	SetKana( AL_わ | AL_左中		,"wa"		)		; わ
 	SetKana( AL_れ | AL_左中		,"re"		)		; れ
