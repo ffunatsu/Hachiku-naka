@@ -74,12 +74,12 @@ ReadLayout()	; () -> Void
 
 	AL_ろ	:= AL_せ				:= KC_A
 	AL_け	:= AL_み				:= KC_S
-	AL_と	:= AL_に				:= KC_D
+	AL_と	:= AL_に	:= AL_左中	:= KC_D
 	AL_か	:= AL_ま	:= AL_左濁	:= KC_F
 	AL_っ	:= AL_ち				:= KC_G
 	AL_く	:= AL_や				:= KC_H
 	AL_あ	:= AL_の	:= AL_右濁	:= KC_J
-	AL_い	:= AL_も				:= KC_K
+	AL_い	:= AL_も	:= AL_右中	:= KC_K
 	AL_う	:= AL_つ				:= KC_L
 	AL_ー	:= AL_ふ				:= KC_SCLN
 
@@ -358,6 +358,39 @@ kanaGroup := "DA"
 	SetKana( AL_左濁 | AL_く | AL_い	,"guxi"		)	; ぐぃ
 	SetKana( AL_左濁 | AL_く | AL_お	,"guxo"		)	; ぐぉ
 	SetKana( AL_左濁 | AL_く | AL_わ	,"guxwa"	)	; ぐゎ
+
+; 中指シフト化
+kanaGroup := "NA"
+	SetKana( AL_ね | AL_右中		,"ne"		)		; ね
+	SetKana( AL_り | AL_右中		,"ri"		)		; り
+	SetKana( AL_め | AL_右中		,"me"		)		; め
+	SetKana( AL_左 | AL_右中		,"+{←}"	, R)	; シフト + 左
+	SetKana( AL_右 | AL_左中		,"+{→}"	, R)	; シフト + 右
+	SetKana( AL_さ | AL_左中		,"sa"		)		; さ
+	SetKana( AL_よ | KC_C			,"yo"		)		; よ
+	SetKana( AL_え | AL_左中		,"e"		)		; え
+	SetKana( AL_ゆ | KC_C			,"yu"		)		; ゆ
+	SetKana( AL_せ | AL_右中		,"se"		)		; せ
+	SetKana( AL_み | AL_右中		,"mi"		)		; み
+	SetKana( AL_に | AL_ま			,"ni"		)		; に
+	SetKana( AL_ま | AL_右中		,"ma"		)		; ま
+	SetKana( AL_ち | AL_右中		,"ti"		)		; ち
+	SetKana( AL_や | KC_C			,"ya"		)		; や
+	SetKana( AL_の | AL_も			,"no"		)		; の
+	SetKana( AL_も | AL_左中		,"mo"		)		; も
+	SetKana( AL_つ | AL_左中		,"tu"		)		; つ
+	SetKana( AL_ふ | AL_左中		,"hu"		)		; ふ
+	SetKana( AL_ほ | AL_右中		,"ho"		)		; ほ
+	SetKana( AL_ひ | AL_右中		,"hi"		)		; ひ
+	SetKana( AL_を | AL_右中		,"wo"		)		; を
+	SetKana( AL_、 | AL_右中		,",{確定}"	)		; 、
+	SetKana( AL_ぬ | AL_右中		,"nu"		)		; ぬ
+	SetKana( AL_お | AL_左中		,"o"		)		; お
+	SetKana( AL_。 | AL_左中		,".{確定}"	)		; 。
+	SetKana( AL_む | AL_左中		,"mu"		)		; む
+	SetKana( AL_わ | AL_左中		,"wa"		)		; わ
+	SetKana( AL_れ | AL_左中		,"re"		)		; れ
+
 
 ;****************************
 ; IME ON/OFF
