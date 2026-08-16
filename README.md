@@ -6,6 +6,8 @@ Hachiku（薙刀式実装）を中指シフト化版である[中指薙刀式](h
 
 まず[AutoHotKey](https://www.autohotkey.com/)のv1かv2をインストールした上で、.ahkを関連付けし、 src/Hachiku.ahk をダブルクリックで起動してください。
 
+システムトレイに常駐して、設定などはシステムトレイなどから可能です。（設定より後置シフトを50ms程度に設定して利用するのがおすすめです。）
+
 ---
 
 Original README ↓↓
