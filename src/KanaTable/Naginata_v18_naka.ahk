@@ -395,8 +395,8 @@ kanaGroup := "NA"
 
 	SetKana( KC_R  | KC_F			,"/"	)
 	SetKana( KC_R  | KC_G			,"/"	)
-	SetKana( KC_F  | KC_B			,"[]{確定}{←}"	)
-	SetKana( KC_I  | KC_J			,"(){確定}{←}"	)
+	; SetKana( KC_F  | KC_B			,"[]{確定}{←}"	)
+	; SetKana( KC_I  | KC_J			,"(){確定}{←}"	) ; 「ある」が化けやすいので削除
 	SetKana( KC_F  | KC_V			,"{!}{確定}"	)
 	SetKana( KC_N  | KC_J			,"?{確定}"	)
 
