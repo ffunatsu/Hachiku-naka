@@ -401,7 +401,7 @@ kanaGroup := "NA"
 	SetKana( KC_N  | KC_J			,"?{確定}"	)
 
 ; 外来語
-kanaGroup := "NA"
+kanaGroup := ""
 	SetKana( AL_ふ | AL_あ		,"fa"		)
 	SetKana( AL_ふ | AL_い		,"fi"		)
 	SetKana( AL_ふ | AL_え		,"fe"		)

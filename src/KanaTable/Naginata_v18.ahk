@@ -351,6 +351,12 @@ kanaGroup := "HA"
 	SetKana( AL_左半 | AL_く | AL_お	,"kuxo"		)	; くぉ
 	SetKana( AL_左半 | AL_く | AL_わ	,"kuxwa"	)	; くゎ
 
+kanaGroup := "HA"
+	SetKana( AL_ふ | AL_あ		,"fa"		)
+	SetKana( AL_ふ | AL_い		,"fi"		)
+	SetKana( AL_ふ | AL_え		,"fe"		)
+	SetKana( AL_ふ | AL_お		,"fo"		)
+	
 ; グ; グァグィグェグォ
 kanaGroup := "DA"
 	SetKana( AL_左濁 | AL_く | AL_え	,"guxe"		)	; ぐぇ
