@@ -406,6 +406,8 @@ kanaGroup := ""
 	SetKana( AL_ふ | AL_い		,"fi"		)
 	SetKana( AL_ふ | AL_え		,"fe"		)
 	SetKana( AL_ふ | AL_お		,"fo"		)
+	SetKana( AL_て | AL_い		,"thi"		)
+	SetKana( AL_右濁 | AL_て | AL_い		,"dhi"		)
 
 
 ;****************************
