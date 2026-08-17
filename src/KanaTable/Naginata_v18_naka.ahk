@@ -400,14 +400,14 @@ kanaGroup := "NA"
 	SetKana( KC_F  | KC_V			,"{!}{確定}"	)
 	SetKana( KC_N  | KC_J			,"?{確定}"	)
 
-; 外来語
-kanaGroup := ""
-	SetKana( AL_ふ | AL_あ		,"fa"		)
-	SetKana( AL_ふ | AL_い		,"fi"		)
-	SetKana( AL_ふ | AL_え		,"fe"		)
-	SetKana( AL_ふ | AL_お		,"fo"		)
-	SetKana( AL_て | AL_い		,"thi"		)
-	SetKana( AL_右濁 | AL_て | AL_い		,"dhi"		)
+; ; 外来語
+; kanaGroup := ""
+; 	SetKana( AL_ふ | AL_あ		,"fa"		)
+; 	SetKana( AL_ふ | AL_い		,"fi"		)
+; 	SetKana( AL_ふ | AL_え		,"fe"		)
+; 	SetKana( AL_ふ | AL_お		,"fo"		)
+; 	SetKana( AL_て | AL_い		,"thi"		)
+; 	SetKana( AL_右濁 | AL_て | AL_い		,"dhi"		)
 
 
 ;****************************
