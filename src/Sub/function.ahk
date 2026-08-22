@@ -1557,7 +1557,124 @@ RepeatCount(nowKey)	; (nowKey: String) -> Void
 	; なお最後に押したキーと別のキーが離れた時は何もしない
 }
 
-; 変換、出力
+; ----------------------------------------------------------------------
+; 定義検索ヘルパー関数
+; ----------------------------------------------------------------------
+
+; 最適な定義を検索（3キー → 2キー → 1キー）
+FindBestDef(searchBit, kMode, grp:="")
+{
+	global defsKey, defsKanaMode, defsGroup, defBegin, defEnd
+	keyCount := CountBit(searchBit)
+
+	; 3キー -> 2キー -> 1キー の順で完全一致を最優先検索
+	Loop, 3
+	{
+		c := 4 - A_Index
+		If (c > keyCount)
+			Continue
+		i := defBegin[c]
+		imax := defEnd[c]
+		While (i < imax)
+		{
+			If (defsKey[i] == searchBit && defsKanaMode[i] == kMode)
+			{
+				If (!grp || grp == defsGroup[i] || !defsGroup[i])
+					Return i
+			}
+			i++
+		}
+	}
+	; グループ指定ありで完全一致しなかった場合、グループなしで完全一致検索
+	If (grp)
+	{
+		Loop, 3
+		{
+			c := 4 - A_Index
+			If (c > keyCount)
+				Continue
+			i := defBegin[c]
+			imax := defEnd[c]
+			While (i < imax)
+			{
+				If (defsKey[i] == searchBit && defsKanaMode[i] == kMode)
+					Return i
+				i++
+			}
+		}
+	}
+	; 部分一致（searchBit の部分集合となっている最大の定義）を検索
+	Loop, 3
+	{
+		c := 4 - A_Index
+		If (c > keyCount)
+			Continue
+		i := defBegin[c]
+		imax := defEnd[c]
+		While (i < imax)
+		{
+			If ((defsKey[i] & searchBit) == defsKey[i] && defsKanaMode[i] == kMode)
+			{
+				If (!grp || grp == defsGroup[i] || !defsGroup[i])
+					Return i
+			}
+			i++
+		}
+	}
+	If (grp)
+	{
+		Loop, 3
+		{
+			c := 4 - A_Index
+			If (c > keyCount)
+				Continue
+			i := defBegin[c]
+			imax := defEnd[c]
+			While (i < imax)
+			{
+				If ((defsKey[i] & searchBit) == defsKey[i] && defsKanaMode[i] == kMode)
+					Return i
+				i++
+			}
+		}
+	}
+	Return 0
+}
+
+; 単打定義の検索
+FindSingleDef(kBit, kMode)
+{
+	global defsKey, defsKanaMode, defBegin, defEnd
+	i := defBegin[1]
+	imax := defEnd[1]
+	While (i < imax)
+	{
+		If (defsKey[i] == kBit && defsKanaMode[i] == kMode)
+			Return i
+		i++
+	}
+	Return 0
+}
+
+; 英数モード時の同時押し対象キーか調べる
+IsEisuComboKey(keyBit)
+{
+	global defsKey, defsKanaMode, defBegin, defEnd
+	i := defBegin[3]
+	imax := defEnd[2]
+	While (i < imax)
+	{
+		If (defsKanaMode[i] == 0 && (defsKey[i] & keyBit))
+			Return True
+		i++
+	}
+	Return False
+}
+
+
+; ----------------------------------------------------------------------
+; 変換、出力ルーチン（QMK準拠 同時押し・オーバーラップ判定エンジン）
+; ----------------------------------------------------------------------
 Convert()	; () -> Void
 {
 	global inBufsKey, inBufReadPos, inBufsTime, inBufRest
@@ -1570,339 +1687,261 @@ Convert()	; () -> Void
 		, repeatStyle, imeGetInterval
 		, spc, ent, repeatCount
 		, imeState, imeSentenceMode
-	static convRest	:= 0		; Int型		入力バッファに積んだ数/多重起動防止フラグ
-		, nextKey	:= ""		; String型	次回送りのキー入力
-		, realBit	:= 0		; Int64型	今押している全部のキービットの集合
-		, lastBit	:= 0		; Int64型	前回のキービット
-		, last2Bit	:= 0		; Int64型	前々回のキービット
-		, reuseBit	:= 0		; Int64型	復活したキービット
-		, lastPushedTime := 0.0	; Double型	有効なキーを押した時間
-		, timeLimit := 0.0		; Double型	タイマーを止めたい時間
-		, lastToBuf	:= ""		; String型	前回、出力バッファに送った文字列(リピート、後置シフト用)
-		, lastKeyCount := 0		; Int型		前回、何キー同時押しだったか？
-		, lastGroup	:= ""		; String型	前回、何グループだったか？ 0または空はグループなし
-		, repeatFlg	:= False	; Bool型	リピート中か
-		, ctrlName	:= NR		; String型	NR: リピートなし, R: リピートあり, 他: かな配列ごとの特殊コード
-		, combinableBit := -1	; Int64型	押すと同時押しになるキー (-1 は次の入力で即確定しないことを意味する)
-		, lastIMEConvMode		; Int型
-		, lastIMESentenceMode	; Int型
-		; シフト用キーの状態
-		, sft		:= 0	; Bool型	左シフト
-		, rsft		:= 0	; Bool型	右シフト
-		; グローバル変数へ移動
-;		, spc		:= 0	; Int型	スペースキー 0: 押していない, 1: 単独押し, 2: シフト継続中, 3, 5: リピート中(3: かなを押すと変換取消→シフト側文字)
-;		, ent		:= 0	; Int型	エンター	 0: 押していない, 1: 単独押し, 2: シフト継続中, 5: リピート中
-;	local class				; String型
-;		, keyTime			; Double型	キーを押した時間
-;		, nowKey			; String型
-;		, nowKeyLength		; Int型
-;		, term				; String型	入力の末端2文字
-;		, toBuf				; String型	出力バッファに送る文字列
-;		, keyCount			; Int型		今回は何キー同時押しか
-;		, nowBit			; Int64型	今回のキービット
-;		, bitMask			; Int64型
-;		, realBitAndKC_SPC	; Int64型	スペースを押していれば 0以外
-;		, backCount			; Int型
-;		, searchBit			; Int64型	いま検索しようとしているキーの集合
-;		, shiftStyle		; Int型
-;		, i, imax			; Int型		カウンタ用
-;		, defKeyCopy		; Int64型
-;		, interval			; Double型
-;		, imeConvMode		; Int?型	IME 入力モード	IME_GetConvMode()用
 
-	; 判定期限タイマー停止
-	SetTimer, KeyTimer, Off
+	static convRest	:= 0		; 多重起動防止フラグ
+		, nextKey	:= ""
+		, realBit	:= 0		; 現在押下中のキービット
+		, sft		:= 0		; 左シフト
+		, rsft		:= 0		; 右シフト
+		, lastIMEConvMode := ""
+		, lastIMESentenceMode := ""
+		, lastPushedTime := 0.0
+		; QMKストロークバッファ
+		, strokeKeys := []		; [{name, bit, tDown, tUp, rel, withSpc, isSpecial}]
+		, strokeBit  := 0		; ストローク内の全キービットの論理和
+		, lastGroup  := ""
+
 	; 多重起動防止
 	If (convRest || nextKey != "")
 		Return
 
-	; 入力バッファが空になるまで
 	While (convRest := 31 - inBufRest || nextKey != "")
 	{
 		If (nextKey == "")
 		{
-			; 入力バッファから読み出し
-			; 参考: 鶴見惠一；6809マイコン・システム 設計手法，CQ出版社 p.114-121
 			nowKey := inBufsKey[inBufReadPos], keyTime := inBufsTime[inBufReadPos]
 				, inBufReadPos := ++inBufReadPos & 31, inBufRest++
 
-			; 同時押し、後置シフトの判定タイマー反応
+			; 判定期限タイマー反応（キー長押し時などのタイムアウトフラッシュ）
 			If (nowKey == "KeyTimer")
 			{
-				; タイマー割り込み後にキー変化がないこと
-				If (inBufRest != 31)
-					Continue
-				; 判定期限到来
-				If (keyTime > timeLimit)
+				If (strokeKeys.Length() > 0)
 				{
-					OutBuf()
-					DispTime(lastPushedTime, "`n判定期限")	; キー変化からの経過時間を表示
+					; タイムアウト時の確定処理
+					Gosub, FlushStroke
 				}
-				Else
-					; 10ミリ秒後に再判定
-					SetTimer, KeyTimer, -10
 				Continue
 			}
 
-			; リピート回数を数える
 			RepeatCount(nowKey)
 		}
 		Else
 		{
-			; 前回の残りを読み出し
 			nowKey := nextKey
 			nextKey := ""
 		}
 
-		WinGetClass, class, A
-		; IME の状態を検出しない時間を過ぎていたら、入力モードを検出
-		; ※ 通常、IME_GET() の値が 0 でも IME_GetConvMode() の値は 0 にならない
-		;		例外1: IME のアイコンが "×" になっているとき。ただし Google Chrome と Edge の入力欄でないところは別
-		;		例外2: Excel と PowerPoint のコメント。でも IME のアイコンは "×" になっていない
-		;		例外3: IME_SetConvMode(0) を実行したとき
-		;		例外4: Firefox と Thunderbird を新MS-IMEで使い、左右シフトで一時英数入力にしているとき
+		; IME状態の検出
 		If (lastSendTime + imeGetInterval <= QPC())
 		{
 			imeState := IME_GET()
 			imeConvMode := IME_GetConvMode()
 			imeSentenceMode := IME_GetSentenceMode()
-			; IME_GetConvMode() の値が 0 になった直後を英数モードに	※ 10行前を参照
 			If (imeConvMode == 0 && lastIMEConvMode)
 				kanaMode := 0
-			; 検出したものを保存
 			lastIMEConvMode := imeConvMode
 			lastIMESentenceMode := imeSentenceMode
 		}
 		Else
 		{
-			; 検出できなかったことを示す
 			imeState := ""
-			; 保存していたものをコピー
 			imeConvMode := lastIMEConvMode
 			imeSentenceMode := lastIMESentenceMode
 		}
 
-		; コンテキストメニューが出ている時
-		; または IMEオフ状態を検出	※ 18行前を参照
-		If (WinExist("ahk_class #32768")
-		 || imeState == 0 && imeConvMode)
+		WinGetClass, class, A
+		If (WinExist("ahk_class #32768") || imeState == 0 && imeConvMode)
 		{
-			kanaMode := 0	; 英数モード
+			kanaMode := 0
 		}
-		; Win+X キーで出てくるメニュー
-;		Else If (imeState && WinExist("ahk_class Xaml_WindowedPopupClass"))
-;			IME_SET(kanaMode := 0)	; IMEオフ
-		Else If ((sft || rsft) && sideShift <= 1	; 左右シフト英数で左右シフトを押している
-			&& !InStr(nowKey, "sc39") && !InStr(nowKey, "Shift") && !InStr(nowKey, "Enter"))
+		Else If ((sft || rsft) && sideShift <= 1 && !InStr(nowKey, "sc39") && !InStr(nowKey, "Shift") && !InStr(nowKey, "Enter"))
 		{
 			If (DetectIME() == "Google" && imeState && (imeConvMode & 1) == 1)
 			{
-				Send, {vkF3}	; 半角/全角 ※ 半角英数に入力切替
+				Send, {vkF3}
 				imeState := ""
 			}
-			kanaMode := 0	; 英数モード
-			imeConvMode := lastIMEConvMode := ""	; IME 入力モードは不明になる
+			kanaMode := 0
+			imeConvMode := lastIMEConvMode := ""
 		}
-		; 検出したものを反映する
 		Else If (imeState == 1)
 			kanaMode := imeConvMode & 1
 
 		; 先頭の "+" を消去
 		If (Asc(nowKey) == 43)
 			nowKey := SubStr(nowKey, 2)
+
 		; 左右シフト処理
 		If (nowKey == "~LShift")
 		{
 			sft := 1
 			If (spc)
-				spc := 2	; 単独スペースではない
+				spc := 2
 			If (ent)
-				ent := 2	; 単独エンターではない
-			OutBuf()
-			nowKey := "sc39"	; センターシフト押す
+				ent := 2
+			Gosub, FlushStroke
+			nowKey := "sc39"
 		}
 		Else If (nowKey == "*RShift")
 		{
 			rsft := 1
 			If (spc)
-				spc := 2	; 単独スペースではない
+				spc := 2
 			If (ent)
-				ent := 2	; 単独エンターではない
-			OutBuf()
+				ent := 2
+			Gosub, FlushStroke
 			Send, {ShiftDown}
-			nowKey := "sc39"	; センターシフト押す
+			nowKey := "sc39"
 		}
 		Else If (nowKey == "~LShift up")
 		{
 			sft := 0
-			; 右シフトは離されていない
 			If (rsft)
 			{
 				Send, {ShiftDown}
-				DispTime(keyTime)	; キー変化からの経過時間を表示
 				Continue
 			}
-			; 他のシフトを押している
 			Else If (spc || ent)
 			{
-				DispTime(keyTime)	; キー変化からの経過時間を表示
 				Continue
 			}
 			Else
-				nowKey := "sc39 up"	; センターシフト上げ
+				nowKey := "sc39 up"
 		}
 		Else If (nowKey == "*RShift up")
 		{
 			rsft := 0
-			; 左シフトも離されている
 			If (!sft)
 				Send, {ShiftUp}
-			; 他のシフトを押している時
 			If (sft || spc || ent)
 			{
-				DispTime(keyTime)	; キー変化からの経過時間を表示
 				Continue
 			}
 			Else
-				nowKey := "sc39 up"	; センターシフト上げ
+				nowKey := "sc39 up"
 		}
 		; スペースキー処理
 		Else If (nowKey == "sc39")
 		{
 			If (ent)
-				ent := 2	; 単独エンターではない
+				ent := 2
 
-			; 他のシフトを押している時
 			If (sft || rsft || ent)
 			{
-				spc := (SpaceKeyRepeat == 2 ? 3 : 2)	; 他のシフトを離した後もリピートするか
+				spc := (SpaceKeyRepeat == 2 ? 3 : 2)
 				StoreBuf("+{Space}", 0, R)
 				OutBuf()
-				DispTime(keyTime, "`nシフト+スペース")	; キー変化からの経過時間を表示
 				Continue
 			}
-			; Firefox と Thunderbird のスペースキーでのスクロール
-			; またはSandSなしの設定をした英数入力中
-			Else If (imeConvMode == 0 && class == "MozillaWindowClass"
-				&& !(DetectIME() == "NewMSIME" && imeSentenceMode != 0)
-				|| !eisuSandS && !kanaMode)
+			Else If (imeConvMode == 0 && class == "MozillaWindowClass" && !(DetectIME() == "NewMSIME" && imeSentenceMode != 0) || !eisuSandS && !kanaMode)
 			{
 				StoreBuf("{Space}", 0, R)
 				OutBuf()
-				DispTime(keyTime)	; キー変化からの経過時間を表示
 				Continue
 			}
-			; 英数単打のリピート、(スペースキーの長押し	空白リピート以外)リピートの好み 全て
-			Else If ((!kanaMode && eisuRepeat || !repeatStyle && SpaceKeyRepeat != 2)
-				&& repeatCount && !(lastBit & KC_SPC))
+			Else If ((!kanaMode && eisuRepeat || !repeatStyle && SpaceKeyRepeat != 2) && repeatCount && !(realBit & KC_SPC))
 			{
-				spc := 5	; 空白をリピート中
+				spc := 5
 				StoreBuf("{Space}", 0, R)
 				OutBuf()
-				DispTime(keyTime, "`nスペース長押し")	; キー変化からの経過時間を表示
 				Continue
 			}
-			; スペースキーの長押し
 			Else If (spaceKeyRepeat && (spc & 1))
 			{
-				; 空白キャンセル
 				If (spaceKeyRepeat == 1)
-					spc := 2	; シフト継続中
+					spc := 2
 				Else
 				{
-					spc := 3	; 空白をリピート中
+					spc := 3
 					StoreBuf("{Space}", 0, R)
 					OutBuf()
 				}
-				DispTime(keyTime, "`nスペース長押し")	; キー変化からの経過時間を表示
 				Continue
 			}
 			Else If (spc)
 				Continue
 
-			spc := 1	; 単独押し
+			spc := 1
 		}
 		Else If (nowKey == "sc39 up")
 		{
-			SendKeyUp()		; 押し下げ出力中のキーを上げる
-			; 他のシフトを押している時
+			SendKeyUp()
 			If (sft || rsft || ent)
 			{
 				spc := 0
-				DispTime(keyTime)	; キー変化からの経過時間を表示
 				Continue
 			}
 			Else If (spc == 1)
-				nextKey := "vk20"	; センターシフト上げ→スペース単独押し
+			{
+				; 単独スペース押下
+				If (strokeKeys.Length() == 0)
+					nextKey := "vk20"
+				Else
+					Gosub, FlushStroke
+			}
 			spc := 0
 		}
 		; エンターキー処理
 		Else If (nowKey == "Enter")
-;		Else If (nowKey == "Enter" && (eisuSandS || kanaMode))	; 英数入力のSandSなし設定でエンターシフトも止めたい時
 		{
 			If (spc)
-				spc := 2	; 単独スペースではない
+				spc := 2
 
-			; 他のシフトを押している時
 			If (sft || rsft || spc)
 			{
-				ent := 2	; 他のシフトを離した後にリピートしない
+				ent := 2
 				StoreBuf("+{Enter}", 0, R)
 				OutBuf()
-				DispTime(keyTime, "`nシフト+エンター")	; キー変化からの経過時間を表示
 				Continue
 			}
-			; 英数単打のリピート
-			Else If ((!kanaMode && eisuRepeat || !repeatStyle)
-				&& repeatCount && !(lastBit & KC_SPC))
+			Else If ((!kanaMode && eisuRepeat || !repeatStyle) && repeatCount && !(realBit & KC_SPC))
 			{
-				ent := 5	; エンターをリピート中
-				StoreBuf("{vk0D}", 0, R)	; エンター単独押し ※"Enter"としないこと
+				ent := 5
+				StoreBuf("{vk0D}", 0, R)
 				OutBuf()
-				DispTime(keyTime, "`nエンター長押し")	; キー変化からの経過時間を表示
 				Continue
 			}
 			Else If (ent)
 				Continue
 
 			ent := 1
-			nowKey := "sc39"	; センターシフト押す
+			nowKey := "sc39"
 		}
 		Else If (nowKey == "Enter up")
 		{
-			nowKey := "sc39 up"	; センターシフト上げ
-			SendKeyUp()			; 押し下げ出力中のキーを上げる
-			; 他のシフトを押している時
+			nowKey := "sc39 up"
+			SendKeyUp()
 			If (sft || rsft || spc)
 			{
 				ent := 0
-				DispTime(keyTime)	; キー変化からの経過時間を表示
 				Continue
 			}
 			Else If (ent == 1)
-				nextKey := "vk0D"	; センターシフト上げ→エンター単独押し ※"Enter"としないこと
+			{
+				If (strokeKeys.Length() == 0)
+					nextKey := "vk0D"
+				Else
+					Gosub, FlushStroke
+			}
 			ent := 0
 		}
-		; スペースのリピートを止める
 		Else If (spc == 3)
 		{
-			; かなを押すと変換取消→シフト側文字
 			If (kanaMode)
 			{
 				nextKey := nowKey
-				nowKey := "vk1B"	; Shiftが付け加えられるので Shift+Esc(変換取消)→シフト側文字
+				nowKey := "vk1B"
 			}
-			spc := 2	; シフト継続中
+			spc := 2
 		}
 
-		keyCount := 0	; 何キー同時押しか、を入れる変数
+		; キーコードとビットの解析
 		nowKeyLength := StrLen(nowKey)
-		term := SubStr(nowKey, nowKeyLength - 1)	; term に入力末尾の2文字を入れる
-		; キーが離れた時
-		If (term == "up")
+		term := SubStr(nowKey, nowKeyLength - 1)
+		isKeyUp := (term == "up")
+
+		If (isKeyUp)
 		{
-			; nowBit に sc○○ から 0x○○ に変換されたものを入れる
-			; 行が変われば十六進数の数値として扱える
 			If (SubStr(nowKey, 1, 2) == "sc")
 				nowBit := "0x" . SubStr(nowKey, nowKeyLength - 4, 2)
 			Else
@@ -1910,343 +1949,218 @@ Convert()	; () -> Void
 		}
 		Else
 		{
-			; スペースキーが押されていたら、toBuf にシフトを加える(SandSの実装)
-			toBuf := (realBit & KC_SPC ? "+" : "")
-
-			; sc** で入力
 			If (SubStr(nowKey, 1, 2) == "sc")
-			{
-			; nowBit に sc○○ から 0x○○ に変換されたものを入れる
-			; 行が変われば十六進数の数値として扱える
 				nowBit := "0x" . term
-				; スペースキーが押されていたら
-				If (realBit & KC_SPC)
-					; toBuf に "{sc○○}" の形式で入れる
-					toBuf .= "{sc" . term . "}"
-				; スペースキーが押されていない
-				Else
-					; toBuf に "{sc○○ down}{sc○○ up}" の形式で入れる
-					toBuf .= "{sc" . term . " down}{sc" . term . " up}"
-			}
-			; sc** 以外で入力
 			Else
-			{
-				nowBit := searchBit := 0
-				toBuf .= "{" . nowKey . "}"
-				keyCount := -1	; かな定義の検索は不要
-			}
+				nowBit := 0
 		}
 
-		; ビットに変換
-		If (nowBit == 0x7D)			; (JIS)\
+		If (nowBit == 0x7D)
 			nowBit := JP_YEN
-		Else If (nowBit == 0x73)	; (JIS)_
+		Else If (nowBit == 0x73)
 			nowBit := KC_INT1
 		Else If (nowBit)
 			nowBit := 1 << nowBit
 
-		; キーリリース時
-		If (term == "up")
+		; --------------------------------------------------------------
+		; キーアップ（KeyUp）イベント
+		; --------------------------------------------------------------
+		If (isKeyUp)
 		{
-			bitMask := nowBit ^ (-1)	; realBit &= ~nowBit では32ビット計算になることがあるので
-			realBit &= bitMask
+			If (nowBit)
+			{
+				realBit &= (nowBit ^ (-1))
 
-			; 文字キーによるシフトの適用範囲
-			If (combKeyUpSPC && nowBit == KC_SPC)
-				shiftStyle := combKeyUpS	; スペースキーを離した時は、スペース押下時の設定
+				; strokeKeys 内の該当キーを解放済みにマーク
+				foundInStroke := False
+				Loop, % strokeKeys.Length()
+				{
+					kEntry := strokeKeys[A_Index]
+					If (kEntry.bit == nowBit && !kEntry.rel)
+					{
+						kEntry.tUp := keyTime
+						kEntry.rel := 1
+						foundInStroke := True
+						Break
+					}
+				}
+
+				; ストロークにキーが存在する場合、QMK方式で判定・出力
+				If (foundInStroke || strokeKeys.Length() > 0)
+				{
+					Gosub, FlushStroke
+				}
+				Else If (!kanaMode && !spc && !sft && !rsft)
+				{
+					; 英数モードの直接出力キーアップ
+					kName := SubStr(nowKey, 1, nowKeyLength - 3)
+					SendBlind("{" . kName . " up}")
+				}
+			}
 			Else
-				shiftStyle := ((realBit & KC_SPC) ? combKeyUpS : combKeyUpN)
-
-			; 「キーを離せば常に全部出力する」がオン、または直近の検索結果のキーを離した
-			If (keyUpToOutputAll || (lastBit & nowBit))
 			{
-				OutBuf()
-				SendKeyUp()		; 押し下げ出力中のキーを上げる
-				If (lastBit & nowBit)
-					lastToBuf := ""
-				lastKeyCount := 0
-				; 全部出力済みならシフト解除
-				If (shiftStyle == 2)
-					last2Bit := lastBit := 0
-				; 同グループ優先は白紙に
-				lastGroup := ""
+				SendKeyUp()
 			}
-			; 一つ前に押したキーを離した
-			Else If (outStrsLength == 2 && lastKeyCount == 1 && nowBit == last2Bit)
-				OutBuf(1)	; 1個出力
-			; カーソルキー等
-			Else If (!nowBit)
-				SendKeyUp()		; 押し下げ出力中のキーを上げる
-
-			last2Bit &= bitMask
-			lastBit &= bitMask
-			reuseBit := (shiftStyle ? 0 : realBit)	; 文字キーシフト全復活
-			combinableBit |= nowBit ; 次の入力で即確定しないキーに追加
-
-			DispTime(keyTime)	; キー変化からの経過時間を表示
+			DispTime(keyTime)
 		}
-		; (キーリリース直後か、通常シフトまたは後置シフトの判定期限後に)スペースキーが押された時
-		Else If (nowBit == KC_SPC && !(realBit & nowBit)
-			&& (!outStrsLength || lastPushedTime + shiftDelay < keyTime))
+		; --------------------------------------------------------------
+		; キーダウン（KeyDown）イベント
+		; --------------------------------------------------------------
+		Else If (nowBit == KC_SPC && !(realBit & nowBit))
 		{
-			OutBuf()
-			reuseBit := 0		; 復活したキービットを消去
-			SendKeyUp()			; 押し下げ出力中のキーを上げる
+			; スペース押下
 			realBit |= KC_SPC
-			repeatFlg := False	; リピート解除
-			DispTime(keyTime)	; キー変化からの経過時間を表示
-		}
-		; リピート中のキー
-		Else If (repeatFlg && repeatCount && lastToBuf != "")
-		{
-			; 入力バッファが空の時
-			If (inBufRest == 31 || !repeatStyle)
+			If (strokeKeys.Length() > 0)
 			{
-				; 前回の文字列を出力
-				If (!outStrsLength)
-					StoreBuf(lastToBuf, 0, ctrlName)
-				OutBuf()
-				reuseBit := 0	; 復活したキービットを消去
-				DispTime(keyTime, "`nリピート " . repeatCount . "回目")	; キー変化からの経過時間を表示
+				; 後置シフトまたはスペース同時
+				strokeBit |= KC_SPC
+				Gosub, FlushStroke
 			}
+			DispTime(keyTime)
 		}
-		; 押されていなかったキー、sc**以外のキー
-		Else If !(realBit & nowBit)
+		Else If (nowBit && !(realBit & nowBit))
 		{
 			realBit |= nowBit
-			realBitAndKC_SPC := realBit & KC_SPC	; スペースを押していれば 0以外
+			lastPushedTime := keyTime
 
-			; 文字キーによるシフトの適用範囲
-			; 英数入力時に判定期限ありなら、文字キーシフトは「同グループのみ継続」か「1回のみ」
-			shiftStyle := (realBitAndKC_SPC ? combStyleS : combStyleN)
-			If (combLimitE && !kanaMode && shiftStyle < 2)
-				shiftStyle := 2
-;			lastGroup := (!shiftStyle ? "" : lastGroup)	; かわせみ2用と同じ動作にするなら有効に
-
-			; 前に押したキーと同時押しにならない
-			; または同時押しの判定期限到来
-			If (outStrsLength
-			 && (!(combinableBit & nowBit) || (nowBit != KC_SPC && combDelay > 0 && lastPushedTime + combDelay < keyTime
-			 && ((combLimitN && !realBitAndKC_SPC) || (combLimitS && realBitAndKC_SPC) || (combLimitE && !kanaMode)) )))
+			; 英数モードかつ同時押し定義対象外キーの高速スルー処理
+			If (!kanaMode && !spc && !sft && !rsft && !IsEisuComboKey(nowBit) && strokeKeys.Length() == 0)
 			{
-				OutBuf()
-				reuseBit := 0	; 復活したキービットを消去
-			}
-			; 前に押したキーが出力確定していなければ同グループ優先で検索しない
-			If (outStrsLength)
-				lastGroup := ""
-			; 出力確定しているので、シフト設定によっては1キー入力だけを検索する
-			Else If (shiftStyle == 3 || (shiftStyle == 2 && !lastGroup) || (shiftStyle == 1 && lastKeyCount == 1))
-				last2Bit := lastBit := 0
-
-			; 検索ループ
-			backCount := 0
-			While (!keyCount)
-			{
-				; 3キー入力を検索
-				If (last2Bit | reuseBit)
-				{
-					; 検索場所の設定
-					i := defBegin[3]
-					imax := defEnd[3]
-					; シフトの適用範囲に応じた検索キーを設定
-					If (shiftStyle)
-						searchBit := realBitAndKC_SPC | nowBit | lastBit | last2Bit | reuseBit
-					Else
-						searchBit := realBit
-
-					While (i < imax)
-					{
-						defKeyCopy := defsKey[i]
-						If ((defKeyCopy & nowBit) ; 今回のキーを含み
-							&& (defKeyCopy & searchBit) == defKeyCopy ; 検索キーがいま調べている定義を含み
-							&& (defKeyCopy & KC_SPC) == realBitAndKC_SPC ; シフトの相違はなく
-							&& defsKanaMode[i] == kanaMode	; 英数用、かな用の種別が一致していること
-							&& (!lastGroup || lastGroup == defsGroup[i]))
-						{
-							; 見つかった!
-							; 前回が2キー、3キー同時押しだったら仮出力バッファの1文字消す
-							; 前回が1キー入力だったら仮出力バッファの2文字消す
-							backCount := (!(defKeyCopy & (lastBit | last2Bit)) ? 0 : lastKeyCount >= 2 ? 1 : 2)
-							keyCount := 3
-							Break
-						}
-						i++
-					}
-				}
-				; 2キー入力を検索
-				If (!keyCount && (lastBit | reuseBit))
-				{
-					; 検索場所の設定
-					i := defBegin[2]
-					imax := defEnd[2]
-					; シフトの適用範囲に応じた検索キーを設定
-					If (shiftStyle)
-						searchBit := realBitAndKC_SPC | nowBit | lastBit | reuseBit
-					Else
-						searchBit := realBit
-
-					While (i < imax)
-					{
-						defKeyCopy := defsKey[i]
-						If ((defKeyCopy & nowBit) ; 今回のキーを含み
-							&& (defKeyCopy & searchBit) == defKeyCopy ; 検索キーがいま調べている定義を含み
-							&& (defKeyCopy & KC_SPC) == realBitAndKC_SPC ; シフトの相違はなく
-							&& defsKanaMode[i] == kanaMode	; 英数用、かな用の種別が一致していること
-							&& (!lastGroup || lastGroup == defsGroup[i]))
-						{
-							; 見つかった!
-							If (outStrsLength >= 2)
-								; 2つ前に押したキーを出力
-								OutBuf(1)
-							backCount := (lastKeyCount >= 2 && nowBit != KC_SPC || !(defKeyCopy & lastBit) ? 0 : 1)
-							keyCount := 2
-							Break
-						}
-						i++
-					}
-				}
-				; 1キー入力を検索
-				If (!keyCount)
-				{
-					; 検索場所の設定
-					i := defBegin[1]
-					imax := defEnd[1]
-					; 検索キーを設定
-					searchBit := realBitAndKC_SPC | (nowBit == KC_SPC ? lastBit : nowBit)
-
-					While (i < imax)
-					{
-						If (searchBit == defsKey[i] && kanaMode == defsKanaMode[i]
-							&& (!lastGroup || lastGroup == defsGroup[i]))
-						{
-							; 見つかった!
-							If (nowBit == KC_SPC)
-								backCount := 1
-							keyCount := 1
-							Break
-						}
-						i++
-					}
-				}
-				; 検索終了判定
-				If (!lastGroup || keyCount)
-					Break
-				; 同グループが見つからなければグループなしで再度検索
-				lastGroup := ""
-				last2Bit := lastBit := 0
+				; 即座に出力（遅延ゼロ・ロールオーバー完全保護）
+				SendBlind("{" . nowKey . " down}")
+				DispTime(keyTime)
+				Continue
 			}
 
-			; スペースを押したが、定義がなかった時
-			If (nowBit == KC_SPC && !keyCount)
+			; ストロークキューにキーを追加
+			isWithSpc := (spc || sft || rsft || (realBit & KC_SPC) ? 1 : 0)
+			strokeKeys.Push({"name": nowKey, "bit": nowBit, "tDown": keyTime, "tUp": 0, "rel": 0, "withSpc": isWithSpc})
+			strokeBit |= nowBit
+			If (isWithSpc)
+				strokeBit |= KC_SPC
+
+			; 3キーに達した場合は即座に判定
+			If (CountBit(strokeBit) >= 3 || strokeKeys.Length() >= 3)
 			{
-				; 仮出力バッファが空の時
-				If (!outStrsLength)
-				{
-					SendKeyUp()			; 押し下げ出力中のキーを上げる
-					repeatFlg := False	; リピート解除
-					DispTime(keyTime)	; キー変化からの経過時間を表示
-					Continue
-				}
-				; 直前の文字にシフトを加える(後置シフト)
-				Else
-				{
-					toBuf := "+" . lastToBuf
-					backCount := 1
-				}
-			}
-			If (spc)
-				spc := 2	; 単独スペースではない
-			If (ent)
-				ent := 2	; 単独エンターではない
-
-			; 仮出力する文字列を変数に入れる
-			; 定義が見つかった時
-			If (keyCount > 0)
-			{
-				toBuf := SelectStr(i)
-				ctrlName := defsCtrlName[i]
-			}
-			; 定義がなければリピートあり
-			Else
-				ctrlName := R
-
-			; 仮出力バッファに入れる
-			StoreBuf(toBuf, backCount, ctrlName)
-
-			; キーリピート用
-			If (ctrlName == R || !repeatStyle)
-				repeatFlg := True	; キーリピートする
-			Else
-				repeatFlg := False
-
-			; 次回の検索用に変数を更新(グループの保存は後で)
-			lastToBuf := toBuf			; 今回の文字列を保存
-			lastPushedTime := keyTime	; 有効なキーを押した時間を保存
-			lastKeyCount := keyCount	; 何キー同時押しだったかを保存
-			; キービットを保存
-			If (keyCount >= 2)
-				; 2、3キー入力のときは今回のを保存
-				last2Bit := lastBit := defsKey[i]
-			Else If (backCount)
-				; 1キー入力で今はスペースキーを押した
-				lastBit := searchBit
-			Else
-			{
-				; 繰り上げ
-				last2Bit := lastBit
-				lastBit := searchBit
-			}
-
-			; 一緒に押すと同時押しになるキーを探す
-			If (keyCount > 0 && !lastGroup)
-				combinableBit := defsCombinableBit[i]
-			Else If (keyCount >= 0)
-				combinableBit := FindCombinableBit(lastBit, kanaMode, keyCount, lastGroup)
-			Else	; If (keyCount < 0)
-				combinableBit := 0
-			; 何グループだったか保存
-			lastGroup := (keyCount > 0 ? defsGroup[i] : "")
-
-			; 出力確定文字か？
-			; 「キーを離せば常に全部出力する」がオンなら、現在押されているキーを除外
-			; オフなら、いま検索したキーを除外
-			combinableBit &= (keyUpToOutputAll ? realBit : lastBit) ^ (-1)
-
-			; 出力処理
-			If (combinableBit == 0 || (shiftDelay <= 0 && combinableBit == KC_SPC))
-			{
-				; 出力確定
-				OutBuf()
-				reuseBit := 0	; 復活したキービットを消去
+				Gosub, FlushStroke
 			}
 			Else
 			{
-				SendKeyUp()	; 押し下げ出力中のキーを上げる
-				If (inBufRest == 31 && nextKey == "")
-				{
-					; 入力バッファが空なので、同時押し、後置シフトの判定タイマー起動処理
-					timeLimit := 0.0
-					; 同時押しの判定
-					If (combDelay > 0
-					 && ((combLimitN && !realBitAndKC_SPC) || (combLimitS && realBitAndKC_SPC) || (combLimitE && !kanaMode)))
-					{
-						timeLimit := keyTime + combDelay	; 期限の時間
-						; 後置シフトも判定し、期限の長いほうを採用
-						If ((combinableBit & KC_SPC) && shiftDelay > combDelay)
-							timeLimit := keyTime + shiftDelay
-					}
-					; 後置シフトの判定
-					Else If (combinableBit == KC_SPC)
-						timeLimit := keyTime + shiftDelay
-					; タイマー起動
-					If (timeLimit != 0.0 && (interval := QPC() - timeLimit) < 0.0)
-						SetTimer, KeyTimer, %interval%	; 1回のみのタイマー
-				}
+				; タイムアウトタイマー起動（キーホールド対策）
+				tDelay := (combDelay > 0 ? combDelay : 50)
+				SetTimer, KeyTimer, % -tDelay
 			}
-			DispTime(keyTime)	; キー変化からの経過時間を表示
+			DispTime(keyTime)
+		}
+		Else If (!nowBit)
+		{
+			; 特殊キー（カーソル等）
+			Gosub, FlushStroke
+			SendBlind("{" . nowKey . "}")
+			DispTime(keyTime)
 		}
 	}
+	Return
+
+; ----------------------------------------------------------------------
+; QMK方式 フラッシュサブルーチン（同時押し・ロールオーバー判定）
+; ----------------------------------------------------------------------
+FlushStroke:
+	SetTimer, KeyTimer, Off
+	If (strokeKeys.Length() == 0)
+		Return
+
+	curKeyCount := strokeKeys.Length()
+
+	; 1. 2キー以上の同時押し定義を検索
+	searchBit := strokeBit
+	If (spc || sft || rsft)
+		searchBit |= KC_SPC
+
+	idx := FindBestDef(searchBit, kanaMode, lastGroup)
+
+	; 同時押し定義に合致した場合
+	If (idx > 0 && CountBit(defsKey[idx]) >= 2)
+	{
+		matchedKeyCount := CountBit(defsKey[idx])
+
+		; オーバーラップ検証: 2つ以上のキーが同時に押されていたか
+		hasOverlap := True
+		If (curKeyCount >= 2)
+		{
+			; 最も早いキーの離鍵時間と最も遅いキーの押下時間
+			minUp := 9999999999.0
+			maxDown := 0.0
+			hasSpcInStroke := False
+			Loop, % strokeKeys.Length()
+			{
+				kE := strokeKeys[A_Index]
+				If (kE.tDown > maxDown)
+					maxDown := kE.tDown
+				tUpVal := (kE.rel && kE.tUp > 0 ? kE.tUp : QPC())
+				If (tUpVal < minUp)
+					minUp := tUpVal
+				If (kE.withSpc)
+					hasSpcInStroke := True
+			}
+			; 離鍵が押下より前（重なり時間が負＝完全な順押し）の場合は同時押しとしない
+			If (minUp < maxDown && !hasSpcInStroke)
+				hasOverlap := False
+		}
+
+		If (hasOverlap)
+		{
+			; 同時押し確定！
+			outStr := SelectStr(idx)
+			cName := defsCtrlName[idx]
+			lastGroup := defsGroup[idx]
+
+			StoreBuf(outStr, 0, cName)
+			OutBuf()
+
+			; ストローククリア
+			strokeKeys := []
+			strokeBit := (realBit & KC_SPC ? KC_SPC : 0)
+			Return
+		}
+	}
+
+	; 2. 同時押し定義がない、またはロールオーバー順押しの場合
+	; QMKの連続押し処理と同様に、押された順序（tDown順）で1キーずつ単打出力
+	Loop, % strokeKeys.Length()
+	{
+		kE := strokeKeys[A_Index]
+		kBit := kE.bit | (kE.withSpc ? KC_SPC : 0)
+
+		; 単打定義を検索
+		sIdx := FindSingleDef(kBit, kanaMode)
+		If (!sIdx && kE.withSpc)
+			sIdx := FindSingleDef(kE.bit, kanaMode)
+
+		If (sIdx > 0)
+		{
+			outStr := SelectStr(sIdx)
+			cName := defsCtrlName[sIdx]
+			lastGroup := defsGroup[sIdx]
+			StoreBuf(outStr, 0, cName)
+			OutBuf()
+		}
+		Else
+		{
+			; 定義がないキーはそのまま出力
+			kCode := kE.name
+			If (kE.withSpc)
+				SendBlind("+{" . kCode . " down}+{" . kCode . " up}")
+			Else
+				SendBlind("{" . kCode . " down}{" . kCode . " up}")
+		}
+	}
+
+	; ストローククリア
+	strokeKeys := []
+	strokeBit := (realBit & KC_SPC ? KC_SPC : 0)
+	lastGroup := ""
+	Return
 }
 
 
