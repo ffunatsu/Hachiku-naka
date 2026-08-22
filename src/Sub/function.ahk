@@ -1833,7 +1833,10 @@ Convert()	; () -> Void
 				If (strokeKeys.Length() == 0)
 					nextKey := "vk20"
 				Else
+				{
+					spc := 2
 					Gosub, FlushStroke
+				}
 			}
 			spc := 0
 		}
@@ -1877,7 +1880,10 @@ Convert()	; () -> Void
 				If (strokeKeys.Length() == 0)
 					nextKey := "vk0D"
 				Else
+				{
+					ent := 2
 					Gosub, FlushStroke
+				}
 			}
 			ent := 0
 		}
@@ -1971,7 +1977,10 @@ Convert()	; () -> Void
 			If (strokeKeys.Length() > 0)
 			{
 				; 後置シフトまたはスペース同時
+				spc := 2
 				strokeBit |= KC_SPC
+				Loop, % strokeKeys.Length()
+					strokeKeys[A_Index].withSpc := 1
 				Gosub, FlushStroke
 			}
 			DispTime(keyTime)
@@ -1980,6 +1989,10 @@ Convert()	; () -> Void
 		{
 			realBit |= nowBit
 			lastPushedTime := keyTime
+			If (spc)
+				spc := 2
+			If (ent)
+				ent := 2
 
 			; 英数モードかつ同時押し定義対象外キーの高速スルー処理
 			If (!kanaMode && !spc && !sft && !rsft && !IsEisuComboKey(nowBit) && strokeKeys.Length() == 0)
@@ -2068,6 +2081,11 @@ FlushStroke:
 	SetTimer, KeyTimer, Off
 	If (strokeKeys.Length() == 0)
 		Return
+
+	If (spc == 1)
+		spc := 2
+	If (ent == 1)
+		ent := 2
 
 	curKeyCount := strokeKeys.Length()
 	tLimit := (combDelay > 0 ? combDelay : 50)
