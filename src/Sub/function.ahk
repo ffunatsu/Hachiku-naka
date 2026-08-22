@@ -1561,82 +1561,38 @@ RepeatCount(nowKey)	; (nowKey: String) -> Void
 ; 定義検索ヘルパー関数
 ; ----------------------------------------------------------------------
 
-; 最適な定義を検索（3キー → 2キー → 1キー）
-FindBestDef(searchBit, kMode, grp:="")
+; 完全一致する定義を検索（3キー -> 2キー -> 1キー）
+FindExactDef(searchBit, kMode, grp:="")
 {
 	global defsKey, defsKanaMode, defsGroup, defBegin, defEnd
 	keyCount := CountBit(searchBit)
+	If (keyCount < 1 || keyCount > 3)
+		Return 0
 
-	; 3キー -> 2キー -> 1キー の順で完全一致を最優先検索
-	Loop, 3
+	; グループ指定がある場合、同グループを最優先検索
+	If (grp)
 	{
-		c := 4 - A_Index
-		If (c > keyCount)
-			Continue
-		i := defBegin[c]
-		imax := defEnd[c]
+		i := defBegin[keyCount]
+		imax := defEnd[keyCount]
 		While (i < imax)
 		{
-			If (defsKey[i] == searchBit && defsKanaMode[i] == kMode)
-			{
-				If (!grp || grp == defsGroup[i] || !defsGroup[i])
-					Return i
-			}
+			If (defsKey[i] == searchBit && defsKanaMode[i] == kMode && defsGroup[i] == grp)
+				Return i
 			i++
 		}
 	}
-	; グループ指定ありで完全一致しなかった場合、グループなしで完全一致検索
-	If (grp)
+
+	; 全定義から完全一致検索（グループなしまたは他グループ）
+	i := defBegin[keyCount]
+	imax := defEnd[keyCount]
+	While (i < imax)
 	{
-		Loop, 3
+		If (defsKey[i] == searchBit && defsKanaMode[i] == kMode)
 		{
-			c := 4 - A_Index
-			If (c > keyCount)
-				Continue
-			i := defBegin[c]
-			imax := defEnd[c]
-			While (i < imax)
-			{
-				If (defsKey[i] == searchBit && defsKanaMode[i] == kMode)
-					Return i
-				i++
-			}
+			If (!grp || !defsGroup[i] || defsGroup[i] == grp)
+				Return i
 		}
-	}
-	; 部分一致（searchBit の部分集合となっている最大の定義）を検索
-	Loop, 3
-	{
-		c := 4 - A_Index
-		If (c > keyCount)
-			Continue
-		i := defBegin[c]
-		imax := defEnd[c]
-		While (i < imax)
-		{
-			If ((defsKey[i] & searchBit) == defsKey[i] && defsKanaMode[i] == kMode)
-			{
-				If (!grp || grp == defsGroup[i] || !defsGroup[i])
-					Return i
-			}
-			i++
-		}
-	}
-	If (grp)
-	{
-		Loop, 3
-		{
-			c := 4 - A_Index
-			If (c > keyCount)
-				Continue
-			i := defBegin[c]
-			imax := defEnd[c]
-			While (i < imax)
-			{
-				If ((defsKey[i] & searchBit) == defsKey[i] && defsKanaMode[i] == kMode)
-					Return i
-				i++
-			}
-		}
+		i++
 	}
 	Return 0
 }
@@ -1697,7 +1653,7 @@ Convert()	; () -> Void
 		, lastIMESentenceMode := ""
 		, lastPushedTime := 0.0
 		; QMKストロークバッファ
-		, strokeKeys := []		; [{name, bit, tDown, tUp, rel, withSpc, isSpecial}]
+		, strokeKeys := []		; [{name, bit, tDown, tUp, rel, withSpc}]
 		, strokeBit  := 0		; ストローク内の全キービットの論理和
 		, lastGroup  := ""
 
@@ -1962,6 +1918,8 @@ Convert()	; () -> Void
 		Else If (nowBit)
 			nowBit := 1 << nowBit
 
+		tDelay := (combDelay > 0 ? combDelay : 50)
+
 		; --------------------------------------------------------------
 		; キーアップ（KeyUp）イベント
 		; --------------------------------------------------------------
@@ -2032,7 +1990,49 @@ Convert()	; () -> Void
 				Continue
 			}
 
-			; ストロークキューにキーを追加
+			; ロールオーバー保護：現在キーより combDelay 以上前に押された先行キーを単打フラッシュ
+			While (strokeKeys.Length() > 0)
+			{
+				kFirst := strokeKeys[1]
+				If (keyTime - kFirst.tDown > tDelay)
+				{
+					; 先行キーを単打として出力
+					kBit := kFirst.bit | (kFirst.withSpc ? KC_SPC : 0)
+					sIdx := FindSingleDef(kBit, kanaMode)
+					If (!sIdx && kFirst.withSpc)
+						sIdx := FindSingleDef(kFirst.bit, kanaMode)
+
+					If (sIdx > 0)
+					{
+						outStr := SelectStr(sIdx)
+						cName := defsCtrlName[sIdx]
+						lastGroup := defsGroup[sIdx]
+						StoreBuf(outStr, 0, cName)
+						OutBuf()
+					}
+					Else
+					{
+						toBuf := (kFirst.withSpc ? "+" : "") . "{" . kFirst.name . " down}{" . kFirst.name . " up}"
+						StoreBuf(toBuf, 0, R)
+						OutBuf()
+					}
+					strokeKeys.RemoveAt(1)
+				}
+				Else
+					Break
+			}
+
+			; strokeBit の再計算
+			strokeBit := 0
+			Loop, % strokeKeys.Length()
+			{
+				kEntry := strokeKeys[A_Index]
+				strokeBit |= kEntry.bit
+				If (kEntry.withSpc)
+					strokeBit |= KC_SPC
+			}
+
+			; ストロークキューに新しいキーを追加
 			isWithSpc := (spc || sft || rsft || (realBit & KC_SPC) ? 1 : 0)
 			strokeKeys.Push({"name": nowKey, "bit": nowBit, "tDown": keyTime, "tUp": 0, "rel": 0, "withSpc": isWithSpc})
 			strokeBit |= nowBit
@@ -2046,8 +2046,7 @@ Convert()	; () -> Void
 			}
 			Else
 			{
-				; タイムアウトタイマー起動（キーホールド対策）
-				tDelay := (combDelay > 0 ? combDelay : 50)
+				; タイムアウトタイマー起動（キーホールド・同時押し待機対策）
 				SetTimer, KeyTimer, % -tDelay
 			}
 			DispTime(keyTime)
@@ -2071,62 +2070,110 @@ FlushStroke:
 		Return
 
 	curKeyCount := strokeKeys.Length()
+	tLimit := (combDelay > 0 ? combDelay : 50)
 
 	; 1. 2キー以上の同時押し定義を検索
-	searchBit := strokeBit
-	If (spc || sft || rsft)
-		searchBit |= KC_SPC
-
-	idx := FindBestDef(searchBit, kanaMode, lastGroup)
-
-	; 同時押し定義に合致した場合
-	If (idx > 0 && CountBit(defsKey[idx]) >= 2)
+	If (curKeyCount >= 2)
 	{
-		matchedKeyCount := CountBit(defsKey[idx])
+		minDown := 9999999999.0
+		maxDown := 0.0
+		minUp := 9999999999.0
+		hasSpcInStroke := False
 
-		; オーバーラップ検証: 2つ以上のキーが同時に押されていたか
-		hasOverlap := True
-		If (curKeyCount >= 2)
+		Loop, % strokeKeys.Length()
 		{
-			; 最も早いキーの離鍵時間と最も遅いキーの押下時間
-			minUp := 9999999999.0
-			maxDown := 0.0
-			hasSpcInStroke := False
-			Loop, % strokeKeys.Length()
-			{
-				kE := strokeKeys[A_Index]
-				If (kE.tDown > maxDown)
-					maxDown := kE.tDown
-				tUpVal := (kE.rel && kE.tUp > 0 ? kE.tUp : QPC())
-				If (tUpVal < minUp)
-					minUp := tUpVal
-				If (kE.withSpc)
-					hasSpcInStroke := True
-			}
-			; 離鍵が押下より前（重なり時間が負＝完全な順押し）の場合は同時押しとしない
-			If (minUp < maxDown && !hasSpcInStroke)
-				hasOverlap := False
+			kE := strokeKeys[A_Index]
+			If (kE.tDown < minDown)
+				minDown := kE.tDown
+			If (kE.tDown > maxDown)
+				maxDown := kE.tDown
+			tUpVal := (kE.rel && kE.tUp > 0 ? kE.tUp : QPC())
+			If (tUpVal < minUp)
+				minUp := tUpVal
+			If (kE.withSpc)
+				hasSpcInStroke := True
 		}
 
-		If (hasOverlap)
+		timeDiff := maxDown - minDown
+		hasOverlap := (minUp >= maxDown || hasSpcInStroke)
+
+		; 押下時間差が combDelay 以内で、キーの重なりがある場合
+		If (timeDiff <= tLimit && hasOverlap)
 		{
-			; 同時押し確定！
-			outStr := SelectStr(idx)
-			cName := defsCtrlName[idx]
-			lastGroup := defsGroup[idx]
+			searchBit := strokeBit
+			If (spc || sft || rsft)
+				searchBit |= KC_SPC
 
-			StoreBuf(outStr, 0, cName)
-			OutBuf()
+			idx := FindExactDef(searchBit, kanaMode, lastGroup)
+			If (!idx && (searchBit & KC_SPC))
+				idx := FindExactDef(searchBit ^ KC_SPC, kanaMode, lastGroup)
 
-			; ストローククリア
-			strokeKeys := []
-			strokeBit := (realBit & KC_SPC ? KC_SPC : 0)
-			Return
+			; 完全一致する同時押し定義に合致した場合
+			If (idx > 0 && CountBit(defsKey[idx]) >= 2)
+			{
+				outStr := SelectStr(idx)
+				cName := defsCtrlName[idx]
+				lastGroup := defsGroup[idx]
+
+				StoreBuf(outStr, 0, cName)
+				OutBuf()
+
+				; ストローククリア
+				strokeKeys := []
+				strokeBit := (realBit & KC_SPC ? KC_SPC : 0)
+				Return
+			}
+		}
+
+		; 3キー押下時に「2キー同時押し ＋ 1キー単打」の組み合わせか検証
+		If (curKeyCount == 3)
+		{
+			k1 := strokeKeys[1], k2 := strokeKeys[2]
+			diff12 := k2.tDown - k1.tDown
+			upVal1 := (k1.rel && k1.tUp > 0 ? k1.tUp : QPC())
+			If (diff12 <= tLimit && (upVal1 >= k2.tDown || k1.withSpc || k2.withSpc))
+			{
+				sBit12 := k1.bit | k2.bit | (k1.withSpc || k2.withSpc || spc || sft || rsft ? KC_SPC : 0)
+				idx12 := FindExactDef(sBit12, kanaMode, lastGroup)
+				If (idx12 > 0 && CountBit(defsKey[idx12]) == 2)
+				{
+					outStr := SelectStr(idx12)
+					cName := defsCtrlName[idx12]
+					lastGroup := defsGroup[idx12]
+					StoreBuf(outStr, 0, cName)
+					OutBuf()
+
+					; 残りの3番目のキーを単打出力
+					k3 := strokeKeys[3]
+					kBit3 := k3.bit | (k3.withSpc ? KC_SPC : 0)
+					sIdx3 := FindSingleDef(kBit3, kanaMode)
+					If (!sIdx3 && k3.withSpc)
+						sIdx3 := FindSingleDef(k3.bit, kanaMode)
+					If (sIdx3 > 0)
+					{
+						outStr3 := SelectStr(sIdx3)
+						cName3 := defsCtrlName[sIdx3]
+						lastGroup := defsGroup[sIdx3]
+						StoreBuf(outStr3, 0, cName3)
+						OutBuf()
+					}
+					Else
+					{
+						toBuf3 := (k3.withSpc ? "+" : "") . "{" . k3.name . " down}{" . k3.name . " up}"
+						StoreBuf(toBuf3, 0, R)
+						OutBuf()
+					}
+
+					strokeKeys := []
+					strokeBit := (realBit & KC_SPC ? KC_SPC : 0)
+					Return
+				}
+			}
 		}
 	}
 
 	; 2. 同時押し定義がない、またはロールオーバー順押しの場合
-	; QMKの連続押し処理と同様に、押された順序（tDown順）で1キーずつ単打出力
+	; 押された順序（tDown順）で1キーずつ単打出力
 	Loop, % strokeKeys.Length()
 	{
 		kE := strokeKeys[A_Index]
@@ -2147,12 +2194,10 @@ FlushStroke:
 		}
 		Else
 		{
-			; 定義がないキーはそのまま出力
-			kCode := kE.name
-			If (kE.withSpc)
-				SendBlind("+{" . kCode . " down}+{" . kCode . " up}")
-			Else
-				SendBlind("{" . kCode . " down}{" . kCode . " up}")
+			; 定義がないキーはそのまま安全に出力
+			toBuf := (kE.withSpc ? "+" : "") . "{" . kE.name . " down}{" . kE.name . " up}"
+			StoreBuf(toBuf, 0, R)
+			OutBuf()
 		}
 	}
 
