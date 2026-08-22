@@ -2,6 +2,8 @@
 
 [Hachiku](https://github.com/tor-nky/Hachiku)（薙刀式実装）を中指シフト化版である[中指薙刀式](https://gist.github.com/ffunatsu/9950c881a8faf616225790aa719544f4)に対応させたものです。
 
+中指薙刀式において、従来のHachikuの同時押し判定では、文字が "化ける" (誤った同時押し判定がされる) 現象が頻発したので、同時押し判定自体を中指薙刀式に特化して修正しています。
+
 ## 起動方法
 
 まず[AutoHotKey](https://www.autohotkey.com/)のv1かv2をインストールした上で、.ahkを関連付けし、 src/Hachiku.ahk をダブルクリックで起動してください。
