@@ -1949,10 +1949,19 @@ Convert()	; () -> Void
 					}
 				}
 
-				; ストロークにキーが存在する場合、QMK方式で判定・出力
-				If (foundInStroke || strokeKeys.Length() > 0)
+				; ストロークに2キー以上存在する場合は直ちに判定・出力
+				If (strokeKeys.Length() >= 2)
 				{
 					Gosub, FlushStroke
+				}
+				Else If (strokeKeys.Length() == 1)
+				{
+					; 1キーのみの場合は即座にフラッシュせず、同時押し待機タイマーに任せる
+					; （先行キーを早く離してしまっても、直後のキーとの同時押しを拾えるようにする）
+					remTime := tDelay - (keyTime - strokeKeys[1].tDown)
+					If (remTime < 10)
+						remTime := 10
+					SetTimer, KeyTimer, % -remTime
 				}
 				Else If (!kanaMode && !spc && !sft && !rsft)
 				{
@@ -2113,9 +2122,9 @@ FlushStroke:
 		}
 
 		timeDiff := maxDown - minDown
-		hasOverlap := (minUp >= maxDown || hasSpcInStroke)
+		hasOverlap := (minUp >= maxDown - 30 || hasSpcInStroke)
 
-		; 押下時間差が combDelay 以内で、キーの重なりがある場合
+		; 押下時間差が combDelay 以内で、キーの重なりがある場合（微小な離鍵先行も許容）
 		If (timeDiff <= tLimit && hasOverlap)
 		{
 			searchBit := strokeBit
@@ -2149,7 +2158,7 @@ FlushStroke:
 			k1 := strokeKeys[1], k2 := strokeKeys[2]
 			diff12 := k2.tDown - k1.tDown
 			upVal1 := (k1.rel && k1.tUp > 0 ? k1.tUp : QPC())
-			If (diff12 <= tLimit && (upVal1 >= k2.tDown || k1.withSpc || k2.withSpc))
+			If (diff12 <= tLimit && (upVal1 >= k2.tDown - 30 || k1.withSpc || k2.withSpc))
 			{
 				sBit12 := k1.bit | k2.bit | (k1.withSpc || k2.withSpc || spc || sft || rsft ? KC_SPC : 0)
 				idx12 := FindExactDef(sBit12, kanaMode, lastGroup)
