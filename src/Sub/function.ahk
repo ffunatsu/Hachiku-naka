@@ -16,7 +16,6 @@
 ;	3キー同時押し配列 メインルーチン
 ; **********************************************************************
 
-
 ; ----------------------------------------------------------------------
 ; サブルーチン
 ; ----------------------------------------------------------------------
@@ -29,7 +28,7 @@ KeyTimer:
 		, inBufWritePos := (inBufRest == 31 ? ++inBufWritePos & 31 : inBufWritePos)
 		, (inBufRest == 31 ? inBufRest-- : )
 	Convert()	; 変換ルーチン
-	Return
+Return
 
 ; IME窓検出タイマー
 JudgeHwnd:
@@ -43,12 +42,12 @@ JudgeHwnd:
 		Else
 			badHwnd := hwnd
 	}
-	Return
+Return
 
 RemoveToolTip:
 	SetTimer, RemoveToolTip, Off
 	ToolTip
-	Return
+Return
 
 ; ----------------------------------------------------------------------
 ; 関数
@@ -89,7 +88,7 @@ DeleteDefs()	; () -> Void
 	defsYokoStr := []	; 横書き用定義
 	defsCtrlName := []	; NR: リピートなし, R: リピートできる, 他: 特別出力(かな定義ファイルで操作)
 	defsCombinableBit := []	; 0: 出力確定しない,
-							; 1: 通常シフトのみ出力確定, 2: どちらのシフトも出力確定
+	; 1: 通常シフトのみ出力確定, 2: どちらのシフトも出力確定
 	defBegin := [1, 1, 1]	; 定義の始め 1キー, 2キー同時, 3キー同時
 	defEnd	:= [1, 1, 1]	; 定義の終わり+1 1キー, 2キー同時, 3キー同時
 }
@@ -98,7 +97,7 @@ DeleteDefs()	; () -> Void
 CountBit(keyComb)	; (keyComb: Int64) -> Int
 {
 	global KC_SPC
-;	local count, i	; Int型
+	;	local count, i	; Int型
 
 	; スペースキーは数えない
 	keyComb &= KC_SPC ^ (-1)
@@ -179,10 +178,10 @@ ControlReplace(str)	; (str: String) -> String
 Analysis(str, convYoko := False)	; (str: String, convYoko: Bool) -> String
 {
 	global imeSelect
-;	local strLength, strSubLength	; Int型
-;		, strSub, ret, c			; String型
-;		, i, bracket				; Int型
-;		, kakutei, noIME			; Bool型
+	;	local strLength, strSubLength	; Int型
+	;		, strSub, ret, c			; String型
+	;		, i, bracket				; Int型
+	;		, kakutei, noIME			; Bool型
 
 	If (str = "{Raw}" || str = "{直接}")
 		; 有効な文字列がないので空白を返す
@@ -362,8 +361,8 @@ SetDefinition(kanaMode, keyComb, tate, yoko, ctrlName)	; (kanaMode: Bool, keyCom
 		, defBegin, defEnd
 		, kanaGroup, NR, R
 		, eisuRepeat
-;	local keyCount	; Int型	何キー同時押しか
-;		, i, imax	; Int型	カウンタ用
+	;	local keyCount	; Int型	何キー同時押しか
+	;		, i, imax	; Int型	カウンタ用
 
 	; 何キー同時押しか
 	keyCount := CountBit(keyComb)
@@ -435,7 +434,7 @@ RepeatStyleToCtrlName(ctrlName:="")	; (ctrlName: String) -> String
 SetKana(keyComb, str, ctrlName:="")	; (keyComb: Int64, str: String, ctrlName: String) -> Void
 {
 	global NR, R
-;	local tate, yoko	; String型
+	;	local tate, yoko	; String型
 
 	ctrlName := RepeatStyleToCtrlName(ctrlName)
 	If (ctrlName == NR || ctrlName == R)
@@ -462,7 +461,7 @@ SetKana2(keyComb, tate, yoko, ctrlName:="")	; (keyComb: Int64, tate: String, yok
 SetEisu(keyComb, str, ctrlName:="")	; (keyComb: Int64, str: String, ctrlName: String) -> Void
 {
 	global NR, R, eisuRepeat
-;	local tate, yoko	; String型
+	;	local tate, yoko	; String型
 
 	; 英数単打のリピートありの処理
 	If (eisuRepeat && CountBit(keyComb) == 1 && ctrlName == "")
@@ -501,8 +500,8 @@ FindCombinableBit(searchBit, kanaMode, keyCount, group:="")	; (searchBit: Int64,
 {
 	global defsKey, defsKanaMode, defsGroup, defBegin, defEnd
 		, KC_SPC
-;	local i, imax		; Int型		カウンタ用
-;		, bit			; Int64型
+	;	local i, imax		; Int型		カウンタ用
+	;		, bit			; Int64型
 
 	bit := 0
 	i := defBegin[3]
@@ -517,7 +516,7 @@ FindCombinableBit(searchBit, kanaMode, keyCount, group:="")	; (searchBit: Int64,
 		}
 		i++
 	}
-;	bit &= searchBit ^ (-1)	; 検索中のキーを削除
+	;	bit &= searchBit ^ (-1)	; 検索中のキーを削除
 
 	Return bit
 }
@@ -526,8 +525,8 @@ FindCombinableBit(searchBit, kanaMode, keyCount, group:="")	; (searchBit: Int64,
 SettingLayout()	; () -> Void
 {
 	global defsKey, defsKanaMode, defsCombinableBit, defBegin, defEnd
-;	local i, imax	; Int型	カウンタ用
-;		, searchBit	; Int64型
+	;	local i, imax	; Int型	カウンタ用
+	;		, searchBit	; Int64型
 
 	; 出力確定するか検索
 	i := defBegin[3]
@@ -542,7 +541,7 @@ SettingLayout()	; () -> Void
 
 ExistNewMSIME()	; () -> Bool
 {
-;	local build	; Int型
+	;	local build	; Int型
 
 	; 参考: https://www.autohotkey.com/docs/Variables.htm#OSVersion
 	If A_OSVersion in WIN_8.1,WIN_8,WIN_7,WIN_VISTA,WIN_2003,WIN_XP,WIN_2000	; Note: No spaces around commas.
@@ -551,7 +550,7 @@ ExistNewMSIME()	; () -> Bool
 	; 参考: https://docs.microsoft.com/ja-jp/windows/release-health/supported-versions-windows-client
 	; [requires v1.1.20+]
 	build := SubStr(A_OSVersion, 6)	; 例えば 10.0.19043 は Windows 10 build 19043 (21H2)
-		; 備考：スタティック変数の初期化で呼び出された時、グローバル変数の osBuild はまだ初期化前
+	; 備考：スタティック変数の初期化で呼び出された時、グローバル変数の osBuild はまだ初期化前
 	If (build <= 18363)	; Windows 10 1909 以前
 		Return False
 	Else
@@ -567,7 +566,7 @@ DetectIME()	; () -> String
 	global imeSelect, goodHwnd, badHwnd, imeNeedDelay, imeGetConvertingInterval
 	static existNewMSIME := ExistNewMSIME()
 		, imeName := "", lastSearchTime := 0
-;	local value, nowIME	; String型
+	;	local value, nowIME	; String型
 
 	If (imeSelect == 1)
 		nowIME := "ATOK"
@@ -579,7 +578,7 @@ DetectIME()	; () -> String
 		|| SubStr(imeName, StrLen(imeName) - 4, 5) != "MSIME")
 	{
 		lastSearchTime := A_TickCount
-;		nowIME := ""
+		;		nowIME := ""
 		If (existNewMSIME)
 		{
 			; 「以前のバージョンの Microsoft IME を使う」がオンになっているか調べる
@@ -617,7 +616,7 @@ DetectIME()	; () -> String
 
 SendBlind(str)	; (str: String) -> Void
 {
-;	SetKeyDelay, -1, -1
+	;	SetKeyDelay, -1, -1
 
 	; Microsoft OneNote 対策
 	; 参考: http://chaboneko.wp.xdomain.jp/?p=583
@@ -668,8 +667,8 @@ SendKeyDown(newStr:="", delay:=-2)	; (str: String, delay: Int) -> Void
 {
 	global restStr	; 今まで下げていたキー 例: +{Up}
 		, lastSendTime
-;	local oldShifted, newShifted	; Bool型
-;		, oldKey, newKey			; String型
+	;	local oldShifted, newShifted	; Bool型
+	;		, oldKey, newKey			; String型
 
 	; "+" から始まるか
 	oldShifted := (Asc(restStr) == 43 ? True : False)
@@ -707,11 +706,11 @@ SendKeyDown(newStr:="", delay:=-2)	; (str: String, delay: Int) -> Void
 EmulateKeyDownUp(str, delay:=-2)	; (str: String, delay: Int) -> Void
 {
 	global osBuild, repeatCount, repeatStyle, vertical
-;	local hwnd				; Int型
-;		, class, process	; String型
-;		, count, count1		; Int型
-;		, key				; String型	矢印系キーだったらそのキー名
-;		, moveLines			; Bool型	行移動があるか
+	;	local hwnd				; Int型
+	;		, class, process	; String型
+	;		, count, count1		; Int型
+	;		, key				; String型	矢印系キーだったらそのキー名
+	;		, moveLines			; Bool型	行移動があるか
 
 	; リピート時の行移動は最大〇打
 	MAX_MOVE_LINES := 5		; Int型定数
@@ -780,7 +779,7 @@ EmulateKeyDownUp(str, delay:=-2)	; (str: String, delay: Int) -> Void
 			count1 := 3
 		; 秀丸エディタとジャストシステム製品の行移動
 		Else If (moveLines
-		 && (class == "Hidemaru32Class" || SubStr(class, 1, 3) == "js:"))
+			&& (class == "Hidemaru32Class" || SubStr(class, 1, 3) == "js:"))
 			count1 := 1	; リピート中は1行ずつ
 		; ジャストシステム製品の文字移動
 		Else If (SubStr(class, 1, 3) == "js:")
@@ -814,30 +813,30 @@ SendEachChar(str)	; (str: String) -> Void
 		, goodHwnd, badHwnd, lastSendTime, kanaMode, repeatCount
 		, imeState, imeSentenceMode
 	static romanChar := False	; Bool型	ローマ字になり得る文字の出力中か(変換1回目のIME窓検出用)
-;	local romanCharForNoIME		; Bool型	一時IMEをオフにしている間にローマ字(アスキー文字)を出力したか
-;		, hwnd					; Int型
-;		, title, class, process	; String型
-;		, strLength				; Int型		str の長さ
-;		, strSub				; String型	細切れにした文字列
-;		, strSubLength			; Int型 	と、その長さを入れる変数
-;		, out					; String型
-;		, outSub, outSub1		; String?型
-;		, outSub2				; Int?型
-;		, i, bracket			; Int型
-;		, c						; String型
-;		, noIME					; Bool型	IME入力モードの保存、復元に関するフラグ
-;		, preDelay, postDelay	; Int型		出力前後のディレイの値
-;		, lastDelay				; Int型		前回出力時のディレイの値
-;		, clipSaved				; Any?型
-;		, imeName				; String型
-;		, count, wait			; Int?型
-;		, inShifted				; Bool型
-;		, imeConvMode			; Int?型	IME 入力モード	IME_GetConvMode()用
+	;	local romanCharForNoIME		; Bool型	一時IMEをオフにしている間にローマ字(アスキー文字)を出力したか
+	;		, hwnd					; Int型
+	;		, title, class, process	; String型
+	;		, strLength				; Int型		str の長さ
+	;		, strSub				; String型	細切れにした文字列
+	;		, strSubLength			; Int型 	と、その長さを入れる変数
+	;		, out					; String型
+	;		, outSub, outSub1		; String?型
+	;		, outSub2				; Int?型
+	;		, i, bracket			; Int型
+	;		, c						; String型
+	;		, noIME					; Bool型	IME入力モードの保存、復元に関するフラグ
+	;		, preDelay, postDelay	; Int型		出力前後のディレイの値
+	;		, lastDelay				; Int型		前回出力時のディレイの値
+	;		, clipSaved				; Any?型
+	;		, imeName				; String型
+	;		, count, wait			; Int?型
+	;		, inShifted				; Bool型
+	;		, imeConvMode			; Int?型	IME 入力モード	IME_GetConvMode()用
 
 	SetTimer, JudgeHwnd, Off	; IME窓検出タイマー停止
-;	SetKeyDelay, -1, -1
+	;	SetKeyDelay, -1, -1
 	WinGet, hwnd, ID, A
-;	WinGetTitle, title, ahk_id %hwnd%
+	;	WinGetTitle, title, ahk_id %hwnd%
 	WinGetClass, class, ahk_id %hwnd%
 	WinGet, process, ProcessName, ahk_id %hwnd%
 	imeName := DetectIME()
@@ -887,8 +886,8 @@ SendEachChar(str)	; (str: String) -> Void
 				; Windows 11 以降のメモ帳、"{確定}"の直後、キー設定使用の旧MS-IME
 				; には間を空けてから
 				If (osBuild >= 20000 && class == "Notepad"
-				 && SubStr(str, i - strSubLength - 4, 4) = "{確定}"
-				 && usingKeyConfig && imeName == "CustomMSIME")
+					&& SubStr(str, i - strSubLength - 4, 4) = "{確定}"
+					&& usingKeyConfig && imeName == "CustomMSIME")
 				{
 					preDelay := imeNeedDelay
 					If (lastDelay < preDelay)
@@ -940,8 +939,8 @@ SendEachChar(str)	; (str: String) -> Void
 					; アスキー文字→{確定} のような定義でなく
 					; Shift+Ctrl+変換 に割り当てた「全確定」が使える時
 					If (!(imeSentenceMode && romanChar && i > 5)
-					 && usingKeyConfig
-					 && (imeName == "CustomMSIME" || imeName == "ATOK" || imeName == "Google"))
+						&& usingKeyConfig
+						&& (imeName == "CustomMSIME" || imeName == "ATOK" || imeName == "Google"))
 					{
 						; IME_GET() には早すぎるか、通常 0 にならない IME_GetConvMode() の値が 0 の時
 						If (lastDelay < imeNeedDelay || !IME_GetConvMode())
@@ -982,7 +981,7 @@ SendEachChar(str)	; (str: String) -> Void
 							; アスキー文字→{確定} のような定義の時
 							; あるいは文字出力から一定時間経っていて、IME窓を検出できた時
 							If ((romanChar && i > 5)
-							 || (lastDelay >= imeGetConvertingInterval && IME_GetConverting()))
+								|| (lastDelay >= imeGetConvertingInterval && IME_GetConverting()))
 								; 確定のためのエンター
 								out := "{Enter}"
 							; かな入力中か、Google 日本語入力以外で「左右シフトかな」設定の時
@@ -1264,7 +1263,7 @@ SendEachChar(str)	; (str: String) -> Void
 					; Win11メモ帳+新MS-IME
 					If (osBuild >= 20000 && class == "Notepad" && imeName == "NewMSIME"
 						&& (RegExMatch(strSub, "^\{[a-z\d\-]\sdown\}$")
-							|| RegExMatch(strSub, "i)^\{sc[0-9a-f]+\sdown\}$")))
+						|| RegExMatch(strSub, "i)^\{sc[0-9a-f]+\sdown\}$")))
 					{
 						; "{? down}{? up}" に変換後のアルファベット、数字、ハイフンだけの定義
 						; "{sc○○ down}{sc○○ up}" に変換後の "{sc○○}" 形式の定義
@@ -1282,7 +1281,7 @@ SendEachChar(str)	; (str: String) -> Void
 					Sleep, % preDelay - lastDelay
 				; 後置ディレイの値を決定	{? up} はあとでディレイなし(-2)にされる
 				If (osBuild >= 20000 && class == "Notepad" && imeName == "NewMSIME"
-				 && postDelay < delay)	; Win11メモ帳+新MS-IME は postDelay が決まっていなかったら 40 を
+					&& postDelay < delay)	; Win11メモ帳+新MS-IME は postDelay が決まっていなかったら 40 を
 				{
 					postDelay := 40
 				}
@@ -1312,8 +1311,8 @@ SendEachChar(str)	; (str: String) -> Void
 
 				; ローマ字入力の文字を押した時
 				If (strSubLength == 1 && strSub >= "!" && strSub <= "~"
-				 || strSubLength == 3 && strSub >= "{!}" && strSub <= "{~}"
-				 || RegExMatch(strSub, "^\{[a-z\d\-]\sdown\}$"))
+					|| strSubLength == 3 && strSub >= "{!}" && strSub <= "{~}"
+					|| RegExMatch(strSub, "^\{[a-z\d\-]\sdown\}$"))
 				{
 					romanChar := True
 					If (noIME)
@@ -1325,7 +1324,7 @@ SendEachChar(str)	; (str: String) -> Void
 					; IME窓の検出が当てにできるか判定
 					; 初めてのスペース変換1回目にIME窓検出タイマーを起動
 					If (hwnd != goodHwnd && hwnd != badHwnd
-					 && (out = "{vk20}" || out = "{Space}") && romanChar && i > strLength)
+						&& (out = "{vk20}" || out = "{Space}") && romanChar && i > strLength)
 						SetTimer, JudgeHwnd, % - imeGetConvertingInterval
 					romanChar := False
 					imeState := imeSentenceMode := ""
@@ -1356,7 +1355,7 @@ SendEachChar(str)	; (str: String) -> Void
 					preDelay := 80
 				; SendRawだったか、または一時IMEをオフにした間にローマ字(アスキー文字)を出力していない
 				Else If (!romanCharForNoIME)
-				 	preDelay := (imeName == "CustomMSIME" || imeName == "OldMSIME" ? 40 : 20)
+					preDelay := (imeName == "CustomMSIME" || imeName == "OldMSIME" ? 40 : 20)
 				Else If (imeName == "NewMSIME")
 					preDelay := 60
 				Else If (imeName == "Google")
@@ -1386,8 +1385,8 @@ OutBuf(i:=2)	; (i: Int) -> Void
 {
 	global outStrsLength, outStrs, outCtrlNames, NR, R
 		, testMode
-;	local out		; String型
-;		, ctrlName	; String型
+	;	local out		; String型
+	;		, ctrlName	; String型
 
 	While (i > 0 && outStrsLength > 0)
 	{
@@ -1452,9 +1451,9 @@ ChangeVertical(mode)	; (mode: Bool) -> Void
 	global iniFilePath, vertical
 
 	static icon_H_Path := Path_AddBackslash(A_ScriptDir) . "Icons\"
-					. Path_RemoveExtension(A_ScriptName) . "_H.ico"	; String型
+		. Path_RemoveExtension(A_ScriptName) . "_H.ico"	; String型
 		, icon_V_Path := Path_AddBackslash(A_ScriptDir) . "Icons\"
-					. Path_RemoveExtension(A_ScriptName) . "_V.ico"	; String型
+		. Path_RemoveExtension(A_ScriptName) . "_V.ico"	; String型
 
 	; 設定ファイル書き込み
 	If (vertical != mode)
@@ -1494,7 +1493,7 @@ SelectStr(index)	; (index: Int) -> String
 DispTime(timeA, str:="")	; (timeA: Double, str: String) -> Void
 {
 	global testMode
-;	local timeAtoB	; Double型
+	;	local timeAtoB	; Double型
 
 	If (testMode == 1)
 	{
@@ -1508,7 +1507,7 @@ DispTime(timeA, str:="")	; (timeA: Double, str: String) -> Void
 DispStoredStr()	; () -> Void
 {
 	global testMode, outStrsLength, outStrs
-;	local str	; String型
+	;	local str	; String型
 
 	If (testMode == 2)
 	{
@@ -1530,7 +1529,7 @@ RepeatCount(nowKey)	; (nowKey: String) -> Void
 {
 	global repeatCount
 	static lastKey := ""	; String型	最後に押したキー
-;	local key	; [String]型
+	;	local key	; [String]型
 
 	; nowKey をスペースで分割して配列 key に入れる
 	key := StrSplit(nowKey, A_Space)
@@ -1627,7 +1626,6 @@ IsEisuComboKey(keyBit)
 	Return False
 }
 
-
 ; ----------------------------------------------------------------------
 ; 変換、出力ルーチン（QMK準拠 同時押し・オーバーラップ判定エンジン）
 ; ----------------------------------------------------------------------
@@ -1637,7 +1635,7 @@ Convert()	; () -> Void
 		, KC_SPC, JP_YEN, KC_INT1, NR, R
 		, defsKey, defsGroup, defsKanaMode, defsCombinableBit, defsCtrlName, defBegin, defEnd
 		, outStrsLength, lastSendTime, kanaMode
-		, sideShift, shiftDelay, combDelay, spaceKeyRepeat
+		, sideShift, shiftDelay, combDelay, combOverlap, spaceKeyRepeat
 		, combLimitN, combStyleN, combKeyUpN, combLimitS, combStyleS, combKeyUpS, combLimitE, combKeyUpSPC
 		, keyUpToOutputAll, eisuSandS, eisuRepeat
 		, repeatStyle, imeGetInterval
@@ -2083,10 +2081,10 @@ Convert()	; () -> Void
 	}
 	Return
 
-; ----------------------------------------------------------------------
-; QMK方式 フラッシュサブルーチン（同時押し・ロールオーバー判定）
-; ----------------------------------------------------------------------
-FlushStroke:
+	; ----------------------------------------------------------------------
+	; QMK方式 フラッシュサブルーチン（同時押し・ロールオーバー判定）
+	; ----------------------------------------------------------------------
+	FlushStroke:
 	SetTimer, KeyTimer, Off
 	If (strokeKeys.Length() == 0)
 		Return
@@ -2097,7 +2095,8 @@ FlushStroke:
 		ent := 2
 
 	curKeyCount := strokeKeys.Length()
-	tLimit := (combDelay > 0 ? combDelay : 50)
+	tLimit := (combDelay > 0 ? combDelay : (combDelay == 0 ? 999999 : 50))
+	cOverlap := (combOverlap != "" ? combOverlap : 60)
 
 	; 1. 2キー以上の同時押し定義を検索
 	If (curKeyCount >= 2)
@@ -2122,10 +2121,11 @@ FlushStroke:
 		}
 
 		timeDiff := maxDown - minDown
-		hasOverlap := (minUp >= maxDown - 30 || hasSpcInStroke)
+		hasOverlap := (cOverlap >= 200 || minUp >= maxDown - cOverlap || hasSpcInStroke)
+		tDiffLimit := (curKeyCount >= 3 ? tLimit * 1.5 : tLimit)
 
-		; 押下時間差が combDelay 以内で、キーの重なりがある場合（微小な離鍵先行も許容）
-		If (timeDiff <= tLimit && hasOverlap)
+		; 押下時間差が combDelay 以内で、キーの重なり（または離鍵先行猶予）がある場合
+		If (timeDiff <= tDiffLimit && hasOverlap)
 		{
 			searchBit := strokeBit
 			If (spc || sft || rsft)
@@ -2158,7 +2158,7 @@ FlushStroke:
 			k1 := strokeKeys[1], k2 := strokeKeys[2]
 			diff12 := k2.tDown - k1.tDown
 			upVal1 := (k1.rel && k1.tUp > 0 ? k1.tUp : QPC())
-			If (diff12 <= tLimit && (upVal1 >= k2.tDown - 30 || k1.withSpc || k2.withSpc))
+			If (diff12 <= tLimit && (cOverlap >= 200 || upVal1 >= k2.tDown - cOverlap || k1.withSpc || k2.withSpc))
 			{
 				sBit12 := k1.bit | k2.bit | (k1.withSpc || k2.withSpc || spc || sft || rsft ? KC_SPC : 0)
 				idx12 := FindExactDef(sBit12, kanaMode, lastGroup)
@@ -2235,12 +2235,11 @@ FlushStroke:
 	Return
 }
 
-
 ; ----------------------------------------------------------------------
 ; ホットキー
 ; ----------------------------------------------------------------------
 #MaxThreadsPerHotkey 3	; 1つのホットキー・ホットストリングに多重起動可能な
-						; 最大のスレッド数を設定
+; 最大のスレッド数を設定
 
 ; キー入力部
 ~LShift::
@@ -2347,29 +2346,29 @@ sc39::	; Space
 ; Microsoft OneNote 対策のため、スペースキーかエンターキーを押しているときだけ
 ; UpキーとDownキーを取得する
 #If (spc || ent)
-Up::	; ※小文字にしてはいけない
-Down::
-Left::
-Right::
-Home::
-End::
-PgUp::
-PgDn::
+	Up::	; ※小文字にしてはいけない
+	Down::
+	Left::
+	Right::
+	Home::
+	End::
+	PgUp::
+	PgDn::
 ; エンター同時押しをシフトとして扱う場合
 #If (EnterShift)
-Enter::
-+Enter::
+	Enter::
+	+Enter::
 ; USキーボードの場合
 #If (USKB)
-sc29::	; (JIS)半角/全角	(US)`
-+sc29::	; (JIS)半角/全角	(US)`
+	sc29::	; (JIS)半角/全角	(US)`
+	+sc29::	; (JIS)半角/全角	(US)`
 #If		; End #If ()
 ; 入力バッファへ保存
-	; 参考: 鶴見惠一；6809マイコン・システム 設計手法，CQ出版社 p.114-121
-	inBufsKey[inBufWritePos] := A_ThisHotkey, inBufsTime[inBufWritePos] := QPC()
-		, inBufWritePos := (inBufRest > 16 ? ++inBufWritePos & 31 : inBufWritePos)	; キーを押す方はいっぱいまで使わない
-		, (inBufRest > 16 ? inBufRest-- : )
-	Convert()	; 変換ルーチン
+; 参考: 鶴見惠一；6809マイコン・システム 設計手法，CQ出版社 p.114-121
+inBufsKey[inBufWritePos] := A_ThisHotkey, inBufsTime[inBufWritePos] := QPC()
+	, inBufWritePos := (inBufRest > 16 ? ++inBufWritePos & 31 : inBufWritePos)	; キーを押す方はいっぱいまで使わない
+	, (inBufRest > 16 ? inBufRest-- : )
+Convert()	; 変換ルーチン
 /*
 	If (testMode != "ERROR" && inBufRest <= 16 && A_TickCount >= trayTipTimeLimit)
 	{
@@ -2377,7 +2376,7 @@ sc29::	; (JIS)半角/全角	(US)`
 		trayTipTimeLimit := A_TickCount + 10000
 	}
 */
-	Return
+Return
 
 ; キー押上げ
 ~LShift up::
@@ -2484,29 +2483,29 @@ sc39 up::	; Space
 ; Microsoft OneNote 対策のため、スペースキーかエンターキーを押しているときだけ
 ; UpキーとDownキーを取得する
 #If (spc || ent)
-Up up::	; ※小文字にしてはいけない
-Down up::
-Left up::
-Right up::
-Home up::
-End up::
-PgUp up::
-PgDn up::
+	Up up::	; ※小文字にしてはいけない
+	Down up::
+	Left up::
+	Right up::
+	Home up::
+	End up::
+	PgUp up::
+	PgDn up::
 ; エンター同時押しをシフトとして扱う場合
 #If (EnterShift)
-Enter up::
-+Enter up::
+	Enter up::
+	+Enter up::
 ; USキーボードの場合
 #If (USKB)
-sc29 up::	; (JIS)半角/全角	(US)`
-+sc29 up::	; (JIS)半角/全角	(US)`
+	sc29 up::	; (JIS)半角/全角	(US)`
+	+sc29 up::	; (JIS)半角/全角	(US)`
 #If		; End #If ()
 ; 入力バッファへ保存
-	; 参考: 鶴見惠一；6809マイコン・システム 設計手法，CQ出版社 p.114-121
-	inBufsKey[inBufWritePos] := A_ThisHotkey, inBufsTime[inBufWritePos] := QPC()
-		, inBufWritePos := (inBufRest ? ++inBufWritePos & 31 : inBufWritePos)
-		, (inBufRest ? inBufRest-- : )
-	Convert()	; 変換ルーチン
-	Return
+; 参考: 鶴見惠一；6809マイコン・システム 設計手法，CQ出版社 p.114-121
+inBufsKey[inBufWritePos] := A_ThisHotkey, inBufsTime[inBufWritePos] := QPC()
+	, inBufWritePos := (inBufRest ? ++inBufWritePos & 31 : inBufWritePos)
+	, (inBufRest ? inBufRest-- : )
+Convert()	; 変換ルーチン
+Return
 
 #MaxThreadsPerHotkey 1	; 元に戻す
