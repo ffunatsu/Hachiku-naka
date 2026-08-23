@@ -6,7 +6,7 @@
 
 ## 起動方法
 
-まず[AutoHotKey](https://www.autohotkey.com/)のv1かv2をインストールした上で、.ahkを関連付けし、 src/Hachiku.ahk をダブルクリックで起動してください。（AutoHotKey v2 だと動作速度が遅いようなので、v1の利用をおすすめします。）
+まず[AutoHotKey](https://www.autohotkey.com/)の[v1](https://www.autohotkey.com/download/ahk-install.exe) ~~かv2~~ をインストールした上で、.ahkを関連付けし、 src/Hachiku.ahk をダブルクリックで起動してください。（AutoHotKey v2 だと動作速度が遅いようなので、v1の利用をおすすめします。）
 
 システムトレイに常駐して、設定などはシステムトレイなどから可能です。
 
