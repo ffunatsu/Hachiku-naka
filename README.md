@@ -18,17 +18,6 @@ Original README ↓↓
 
 ---
 
-## 今後の機能追加はしません
-* 原理上、4キー以上の同時押しに対応できない
-* 判定を変えられる設定が多数あり、変換アルゴリズムの差し替えが困難なこと
-* 新MS-IMEで DF+P にESCキーの連打でなく、IMEキャンセルを実装しようとすると他の機能が壊れた。(そもそも ATOKモードでは使えないが)
-* 開発言語Autohotkeyで起きやすい問題を放置されたままにv2に移行したこと
-* Autohotkey v2に移植してみたところ問題はそのままで、しかも速度が3分の1になり、IMEの状態検知が期待通りに働かない。
-* DvorakJと比べて別に速くないこと
-* [薙刀式QMK版](https://github.com/tor-nky/qmk_userspace/tree/main/users/naginata_v16m) や [keymapper版](https://github.com/tor-nky/KeyLayout/tree/master/Naginata_v16/Win/keymapper%20Layout) でIMEの状態検知以外のすべてが解消できること
-
-ことから、今後の機能追加はしません。
-
 # Hachiku - Windows で薙刀式を使うスクリプト
 2025年4月18日付[【薙刀式】v16快速版発表](http://oookaworks.seesaa.net/article/509198141.html#gsc.tab=0)
 から、__薙刀式v16快速版__ を Autohotkey に実装しました。
@@ -194,3 +183,14 @@ Windows 10 で通常 10 ms 以内、エクスプローラー 78 ms 以内。
 Windows 11 以降はもっとかかります。
 * 記号
 Windows 11以降のメモ帳では最大 0.5秒。他は最大 0.4秒。
+
+## 今後の機能追加はしません
+* 原理上、4キー以上の同時押しに対応できない
+* 判定を変えられる設定が多数あり、変換アルゴリズムの差し替えが困難なこと
+* 新MS-IMEで DF+P にESCキーの連打でなく、IMEキャンセルを実装しようとすると他の機能が壊れた。(そもそも ATOKモードでは使えないが)
+* 開発言語Autohotkeyで起きやすい問題を放置されたままにv2に移行したこと
+* Autohotkey v2に移植してみたところ問題はそのままで、しかも速度が3分の1になり、IMEの状態検知が期待通りに働かない。
+* DvorakJと比べて別に速くないこと
+* [薙刀式QMK版](https://github.com/tor-nky/qmk_userspace/tree/main/users/naginata_v16m) や [keymapper版](https://github.com/tor-nky/KeyLayout/tree/master/Naginata_v16/Win/keymapper%20Layout) でIMEの状態検知以外のすべてが解消できること
+
+ことから、今後の機能追加はしません。
