@@ -671,7 +671,7 @@ PrefMenu:
 		GuiControl, , combKeyUpSPC1, 1
 
 	Gui, Tab
-	Gui, Add, Button, W60 xm+146 ys+200 Default, OK
+	Gui, Add, Button, W60 xm+146 ys+235 Default, OK
 	Gui, Add, Button, W60 x+0, Cancel
 
 	Gui, Show
