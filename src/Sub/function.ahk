@@ -1581,25 +1581,33 @@ FindExactDef(searchBit, kMode, grp:="")
 		}
 	}
 
-	; 全定義から完全一致検索（グループなしまたは他グループ）
+	; 全定義から完全一致検索（他グループまたはグループなしも全て対象）
 	i := defBegin[keyCount]
 	imax := defEnd[keyCount]
 	While (i < imax)
 	{
 		If (defsKey[i] == searchBit && defsKanaMode[i] == kMode)
-		{
-			If (!grp || !defsGroup[i] || defsGroup[i] == grp)
-				Return i
-		}
+			Return i
 		i++
 	}
 	Return 0
 }
 
 ; 単打定義の検索
-FindSingleDef(kBit, kMode)
+FindSingleDef(kBit, kMode, grp:="")
 {
-	global defsKey, defsKanaMode, defBegin, defEnd
+	global defsKey, defsKanaMode, defsGroup, defBegin, defEnd
+	If (grp)
+	{
+		i := defBegin[1]
+		imax := defEnd[1]
+		While (i < imax)
+		{
+			If (defsKey[i] == kBit && defsKanaMode[i] == kMode && defsGroup[i] == grp)
+				Return i
+			i++
+		}
+	}
 	i := defBegin[1]
 	imax := defEnd[1]
 	While (i < imax)
@@ -1947,19 +1955,23 @@ Convert()	; () -> Void
 					}
 				}
 
-				; ストロークに2キー以上存在する場合は直ちに判定・出力
-				If (strokeKeys.Length() >= 2)
+				; 現在のストロークに含まれるキーのリリース時のみ判定・タイマー更新
+				If (foundInStroke)
 				{
-					Gosub, FlushStroke
-				}
-				Else If (strokeKeys.Length() == 1)
-				{
-					; 1キーのみの場合は即座にフラッシュせず、同時押し待機タイマーに任せる
-					; （先行キーを早く離してしまっても、直後のキーとの同時押しを拾えるようにする）
-					remTime := tDelay - (keyTime - strokeKeys[1].tDown)
-					If (remTime < 10)
-						remTime := 10
-					SetTimer, KeyTimer, % -remTime
+					; ストロークに2キー以上存在する場合は直ちに判定・出力
+					If (strokeKeys.Length() >= 2)
+					{
+						Gosub, FlushStroke
+					}
+					Else If (strokeKeys.Length() == 1)
+					{
+						; 1キーのみの場合は即座にフラッシュせず、同時押し待機タイマーに任せる
+						; （先行キーを早く離してしまっても、直後のキーとの同時押しを拾えるようにする）
+						remTime := tDelay - (keyTime - strokeKeys[1].tDown)
+						If (remTime < 10)
+							remTime := 10
+						SetTimer, KeyTimer, % -remTime
+					}
 				}
 				Else If (!kanaMode && !spc && !sft && !rsft)
 				{
