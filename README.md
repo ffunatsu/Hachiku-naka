@@ -6,7 +6,9 @@
 
 ## 起動方法
 
-まず[AutoHotKey](https://www.autohotkey.com/)の[v1](https://www.autohotkey.com/download/ahk-install.exe) ~~かv2~~ をインストールした上で、`.ahk` を関連付けし、 `src/Hachiku.ahk` をダブルクリックで起動してください。`Hachiku-naka.bat` からも起動できます。（AutoHotKey v2 だと動作速度が遅いようなので、v1の利用をおすすめします。）
+まずこのリポジトリをGitでクローンするか、[zipでダウンロード](https://github.com/ffunatsu/Hachiku-naka/archive/refs/heads/main.zip)してください。
+
+[AutoHotKey](https://www.autohotkey.com/)の[v1](https://www.autohotkey.com/download/ahk-install.exe) ~~かv2~~ をインストールした上で、`.ahk` を関連付けし、 `src/Hachiku.ahk` をダブルクリックで起動してください。`Hachiku-naka.bat` からも起動できます。（AutoHotKey v2 だと動作速度が遅いようなので、v1の利用をおすすめします。）
 
 システムトレイに常駐して、設定などはシステムトレイなどから可能です。
 
