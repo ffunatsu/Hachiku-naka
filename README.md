@@ -6,11 +6,15 @@
 
 ## 起動方法
 
-まず[AutoHotKey](https://www.autohotkey.com/)の[v1](https://www.autohotkey.com/download/ahk-install.exe) ~~かv2~~ をインストールした上で、.ahkを関連付けし、 src/Hachiku.ahk をダブルクリックで起動してください。（AutoHotKey v2 だと動作速度が遅いようなので、v1の利用をおすすめします。）
+まず[AutoHotKey](https://www.autohotkey.com/)の[v1](https://www.autohotkey.com/download/ahk-install.exe) ~~かv2~~ をインストールした上で、`.ahk` を関連付けし、 `src/Hachiku.ahk` をダブルクリックで起動してください。`Hachiku-naka.bat` からも起動できます。（AutoHotKey v2 だと動作速度が遅いようなので、v1の利用をおすすめします。）
 
 システムトレイに常駐して、設定などはシステムトレイなどから可能です。
 
 （設定より後置シフトを50ms程度に設定して利用するのがおすすめです。「英数入力時のSandS」をオフにするとスペース混じりの英語が自然に入力できるようになります。）
+
+## スタートメニューから起動したい場合
+
+`.ahk` だとスタートメニューに登録ができないので、`Hachiku-naka.bat` を右クリックの「送る」からデスクトップに登録したり、「お気に入りに追加」すると、スタートメニューから起動できるようになります。（スタートでHachikuなどで検索すると表示されるようになります。）
 
 ---
 
