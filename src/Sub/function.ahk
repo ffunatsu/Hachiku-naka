@@ -1481,6 +1481,24 @@ ChangeVertical(mode)	; (mode: Bool) -> Void
 	}
 }
 
+; タイピングゲームモード切り替え
+ChangeTypingGameMode(mode)	; (mode: Bool) -> Void
+{
+	global typingGameMode
+
+	typingGameMode := mode
+
+	; タスクトレイ関連
+	If (typingGameMode)
+	{
+		Menu, TRAY, Check, タイピングゲームモード		; “タイピングゲームモード”にチェックを付ける
+	}
+	Else
+	{
+		Menu, TRAY, Uncheck, タイピングゲームモード	; “タイピングゲームモード”のチェックを外す
+	}
+}
+
 ; 出力する文字列を選択
 SelectStr(index)	; (index: Int) -> String
 {
@@ -1642,7 +1660,7 @@ Convert()	; () -> Void
 	global inBufsKey, inBufReadPos, inBufsTime, inBufRest
 		, KC_SPC, JP_YEN, KC_INT1, NR, R
 		, defsKey, defsGroup, defsKanaMode, defsCombinableBit, defsCtrlName, defBegin, defEnd
-		, outStrsLength, lastSendTime, kanaMode
+		, outStrsLength, lastSendTime, kanaMode, typingGameMode
 		, sideShift, shiftDelay, combDelay, combOverlap, spaceKeyRepeat
 		, combLimitN, combStyleN, combKeyUpN, combLimitS, combStyleS, combKeyUpS, combLimitE, combKeyUpSPC
 		, keyUpToOutputAll, eisuSandS, eisuRepeat
@@ -1712,7 +1730,7 @@ Convert()	; () -> Void
 		}
 
 		WinGetClass, class, A
-		If (WinExist("ahk_class #32768") || imeState == 0 && imeConvMode)
+		If (WinExist("ahk_class #32768") || (imeState == 0 && imeConvMode && !typingGameMode))
 		{
 			kanaMode := 0
 		}
@@ -1726,8 +1744,8 @@ Convert()	; () -> Void
 			kanaMode := 0
 			imeConvMode := lastIMEConvMode := ""
 		}
-		Else If (imeState == 1)
-			kanaMode := imeConvMode & 1
+		Else If (imeState == 1 || typingGameMode)
+			kanaMode := (imeConvMode ? imeConvMode & 1 : 1)
 
 		; 先頭の "+" を消去
 		If (Asc(nowKey) == 43)

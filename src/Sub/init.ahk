@@ -115,6 +115,7 @@ R := "Repeat"		; String型定数
 ; ----------------------------------------------------------------------
 lastSendTime := 0.0	; Double型		最後に出力した時間
 kanaMode := 0		; Bool型		0: 英数入力, 1: かな入力
+typingGameMode := 0	; Bool型		0: 通常, 1: タイピングゲームモード
 layoutNameE := ""	; String型		英語配列の名前
 layoutName := ""	; String型		かな配列の名前
 kanaGroup := ""		; String型		配列定義のグループ名 ※0または空はグループなし
@@ -341,6 +342,9 @@ If (IsFunc("KoyuRegist"))	; 関数 KoyuRegist が存在するか
 	; 縦書きモード切替を追加
 	Menu, TRAY, Add, 縦書きモード, VerticalMode
 	ChangeVertical(vertical)
+	; タイピングゲームモード切替を追加
+	Menu, TRAY, Add, タイピングゲームモード, TypingGameMode
+	ChangeTypingGameMode(typingGameMode)
 	; 「固有名詞」編集画面を追加
 	Menu, TRAY, Add, 固有名詞登録, KoyuMenu
 }
@@ -382,6 +386,12 @@ ExitApp
 VerticalMode:
 	Menu, TRAY, ToggleCheck, 縦書きモード
 	ChangeVertical(vertical == 0 ? 1 : 0)
+Return
+
+; タイピングゲームモード切替
+TypingGameMode:
+	Menu, TRAY, ToggleCheck, タイピングゲームモード
+	ChangeTypingGameMode(typingGameMode == 0 ? 1 : 0)
 Return
 
 ButtonOK:
